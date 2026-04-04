@@ -1,48 +1,43 @@
 /**
  * Lead Router — GoHighLevel Embed Script
  *
- * Drop this on any custom GHL page (or any HTML page) to capture a form,
- * route the lead, and redirect to the assigned advisor's calendar.
+ * GHL forms are Vue.js based and do not fire a native HTML submit event.
+ * This script intercepts the submit button click instead, calls the routing
+ * API in parallel with GHL's own submission (so GHL still saves the contact),
+ * then redirects to the assigned advisor's calendar URL.
  *
  * SETUP — add a config block BEFORE this script tag:
  *
  *   <script>
  *     window.LeadRouterConfig = {
- *       backendUrl:   'https://your-domain.com',   // required: your server URL
- *       formSelector: '#lead-form',                // optional: defaults to 'form'
- *       fallbackUrl:  'https://your-domain.com/thank-you', // optional: redirect if routing fails
- *       fields: {                                  // optional: map to your actual field names
- *         name:  'full_name',   // <input name="full_name">
+ *       backendUrl:   'https://your-render-url.onrender.com',
+ *       formSelector: '#_builder-form',
+ *       fallbackUrl:  'https://yoursite.com/contact',
+ *       fields: {
+ *         name:  'first_name',
  *         email: 'email',
  *         phone: 'phone',
- *         state: 'state',
+ *         state: 'your_state_field_name',
  *       },
- *       extraFields: {                             // optional: pass any extra fields to backend
- *         investableAssets: 'investable_assets',
- *         goal:             'primary_goal',
+ *       extraFields: {
+ *         last_name: 'last_name',
  *       },
- *       submitButtonText: 'Connecting you…',       // optional: loading text on submit
  *     };
- *   </script>
- *   <script src="https://your-domain.com/ghl-embed.js"></script>
- *
- * HOW IT WORKS:
- *   1. Finds the form using formSelector
- *   2. Intercepts submit (prevents GHL's default handling)
- *   3. POSTs lead data to /route-lead on your backend
- *   4. Redirects the browser to the assigned advisor's calendar URL
- *   5. Falls back to fallbackUrl (or an alert) if routing fails
+ *   <\/script>
+ *   <script src="https://your-render-url.onrender.com/ghl-embed.js"><\/script>
  */
 
 (function () {
   const cfg = window.LeadRouterConfig || {};
 
-  const BACKEND_URL   = (cfg.backendUrl  || '').replace(/\/$/, ''); // strip trailing slash
+  const BACKEND_URL   = (cfg.backendUrl  || '').replace(/\/$/, '');
   const FORM_SELECTOR = cfg.formSelector || 'form';
   const FALLBACK_URL  = cfg.fallbackUrl  || '';
-  const LOADING_TEXT  = cfg.submitButtonText || 'Connecting you with an advisor…';
-  const FIELD_MAP     = Object.assign({ name: 'name', email: 'email', phone: 'phone', state: 'state' }, cfg.fields || {});
-  const EXTRA_FIELDS  = cfg.extraFields || {};
+  const FIELD_MAP     = Object.assign(
+    { name: 'name', email: 'email', phone: 'phone', state: 'state' },
+    cfg.fields || {}
+  );
+  const EXTRA_FIELDS = cfg.extraFields || {};
 
   if (!BACKEND_URL) {
     console.error('[LeadRouter] backendUrl is not set in window.LeadRouterConfig.');
@@ -54,6 +49,14 @@
     if (!fieldName) return '';
     const el = form.querySelector(`[name="${fieldName}"]`) || document.getElementById(fieldName);
     if (!el) return '';
+
+    // GHL multiselect dropdowns — the input is a Vue search box.
+    // The selected value lives in the .multiselect__single span.
+    if (el.classList.contains('multiselect__input')) {
+      const single = el.closest('.multiselect')?.querySelector('.multiselect__single');
+      return single ? single.textContent.trim() : '';
+    }
+
     if (el.type === 'checkbox') return el.checked ? 'yes' : 'no';
     if (el.type === 'radio') {
       const checked = form.querySelector(`[name="${fieldName}"]:checked`);
@@ -62,33 +65,22 @@
     return (el.value || '').trim();
   }
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const form       = e.currentTarget;
-    const submitBtn  = form.querySelector('[type="submit"], button:not([type]), button[type="button"]');
-    const originalText = submitBtn ? submitBtn.textContent : '';
-
-    // Disable button and show loading state
-    if (submitBtn) {
-      submitBtn.disabled    = true;
-      submitBtn.textContent = LOADING_TEXT;
-    }
-
-    // Build the payload from configured field names
+  /** Collect all configured field values from the form into a payload object. */
+  function buildPayload(form) {
     const payload = {
       name:  getVal(form, FIELD_MAP.name),
       email: getVal(form, FIELD_MAP.email),
       phone: getVal(form, FIELD_MAP.phone),
       state: getVal(form, FIELD_MAP.state),
     };
-
-    // Attach any extra fields (qualification questions, etc.)
     for (const [key, fieldName] of Object.entries(EXTRA_FIELDS)) {
       payload[key] = getVal(form, fieldName);
     }
+    return payload;
+  }
 
+  /** Call the routing API and redirect to the assigned calendar URL. */
+  function routeAndRedirect(payload) {
     fetch(`${BACKEND_URL}/route-lead`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -101,18 +93,12 @@
         } else if (FALLBACK_URL) {
           window.location.href = FALLBACK_URL;
         } else {
-          alert('Thank you! An advisor will be in touch with you shortly.');
-          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText; }
+          console.warn('[LeadRouter] No calendar URL returned and no fallbackUrl set.');
         }
       })
       .catch(err => {
         console.error('[LeadRouter] Routing request failed:', err);
-        if (FALLBACK_URL) {
-          window.location.href = FALLBACK_URL;
-        } else {
-          alert('Something went wrong. Please try again or call us directly.');
-          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText; }
-        }
+        if (FALLBACK_URL) window.location.href = FALLBACK_URL;
       });
   }
 
@@ -122,11 +108,31 @@
       console.warn('[LeadRouter] No form found matching selector:', FORM_SELECTOR);
       return;
     }
-    form.addEventListener('submit', handleSubmit);
-    console.log('[LeadRouter] Initialized. Watching:', form);
+
+    // GHL uses Vue.js internally — the native form submit event may never fire.
+    // We intercept the submit button click in the capture phase (fires before Vue),
+    // collect the payload, then let GHL run normally so it still saves the contact.
+    // Our fetch call runs in parallel; when it resolves we redirect to the calendar.
+    const btn = form.querySelector('[type="submit"]');
+    if (btn) {
+      btn.addEventListener('click', function () {
+        const payload = buildPayload(form);
+        console.log('[LeadRouter] Captured payload:', payload);
+        routeAndRedirect(payload);
+        // Note: we do NOT call preventDefault or stopPropagation here.
+        // GHL continues with its own submission so the contact is saved in the CRM.
+      }, true); // true = capture phase, fires before Vue's own handlers
+      console.log('[LeadRouter] Initialized. Watching submit button on:', form);
+    } else {
+      // Fallback for non-GHL standard forms
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        routeAndRedirect(buildPayload(form));
+      });
+      console.log('[LeadRouter] Initialized (submit fallback) on:', form);
+    }
   }
 
-  // Wait for DOM if needed
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
