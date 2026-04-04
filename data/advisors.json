@@ -1,0 +1,59 @@
+[
+  {
+    "id": "john",
+    "name": "John",
+    "isDefault": true,
+    "licensedStates": [
+      "Texas",
+      "California",
+      "Florida",
+      "New York",
+      "Ohio",
+      "Georgia",
+      "North Carolina",
+      "Michigan",
+      "Pennsylvania",
+      "Illinois"
+    ],
+    "targetAppointmentsPerMonth": 20,
+    "appointmentsDeliveredThisMonth": 18,
+    "appointmentsDeliveredThisWeek": 4,
+    "calendarUrl": "https://calendly.com/john-advisor",
+    "isActive": true,
+    "manualPriorityBoost": 0,
+    "notes": "Default fallback advisor. Licensed broadly across 10 states."
+  },
+  {
+    "id": "blaine",
+    "name": "Blaine",
+    "isDefault": false,
+    "licensedStates": [
+      "Texas",
+      "Oklahoma"
+    ],
+    "targetAppointmentsPerMonth": 15,
+    "appointmentsDeliveredThisMonth": 7,
+    "appointmentsDeliveredThisWeek": 2,
+    "calendarUrl": "https://calendly.com/blaine-advisor",
+    "isActive": true,
+    "manualPriorityBoost": 0,
+    "notes": "Specializes in Texas and Oklahoma. More constrained territory."
+  },
+  {
+    "id": "james-mabry",
+    "name": "James Mabry",
+    "isDefault": false,
+    "licensedStates": [
+      "California",
+      "Ohio",
+      "Florida"
+    ],
+    "targetAppointmentsPerMonth": 10,
+    "appointmentsDeliveredThisMonth": 0,
+    "appointmentsDeliveredThisWeek": 0,
+    "calendarUrl": "https://api.leadconnectorhq.com/widget/booking/YYAVG8oaAtlW0awOzB8Z",
+    "isActive": true,
+    "manualPriorityBoost": 0,
+    "notes": ""
+  }
+]

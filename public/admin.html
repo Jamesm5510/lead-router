@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lead Router — Admin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f1f5f9;
+      color: #1e293b;
+      font-size: 14px;
+    }
+
+    /* ── Key Overlay ── */
+    #keyOverlay {
+      position: fixed; inset: 0;
+      background: #0f172a;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    .key-card {
+      background: white; border-radius: 12px; padding: 40px 36px;
+      width: 360px; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .key-card h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .key-card p { color: #64748b; font-size: 13px; margin-bottom: 24px; }
+    .key-card input {
+      width: 100%; padding: 10px 12px; border: 1px solid #d1d5db;
+      border-radius: 6px; font-size: 14px; margin-bottom: 12px;
+      text-align: center; letter-spacing: 2px;
+    }
+    .key-card input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+    .key-card button {
+      width: 100%; padding: 10px; background: #2563eb; color: white;
+      border: none; border-radius: 6px; font-size: 14px; font-weight: 600;
+      cursor: pointer;
+    }
+    .key-card button:hover { background: #1d4ed8; }
+    #keyError { color: #dc2626; font-size: 13px; margin-top: 10px; min-height: 18px; }
+
+    /* ── Header ── */
+    #app { display: none; }
+    .header {
+      background: #1e293b; color: white; height: 56px;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .header-left h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+    .header-left .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .btn-signout {
+      padding: 5px 12px; background: transparent; color: #94a3b8;
+      border: 1px solid #334155; border-radius: 5px; font-size: 12px;
+      cursor: pointer;
+    }
+    .btn-signout:hover { color: white; border-color: #64748b; }
+
+    /* ── Stats ── */
+    .stats { display: flex; gap: 14px; padding: 20px 24px 0; }
+    .stat {
+      background: white; border: 1px solid #e2e8f0; border-radius: 8px;
+      padding: 14px 18px; min-width: 130px;
+    }
+    .stat-label { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-value { font-size: 26px; font-weight: 700; color: #0f172a; margin-top: 4px; }
+
+    /* ── Table Section ── */
+    .section { margin: 20px 24px; }
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .section-header h2 { font-size: 15px; font-weight: 600; }
+
+    .btn-add {
+      padding: 7px 16px; background: #2563eb; color: white;
+      border: none; border-radius: 6px; font-size: 13px; font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-add:hover { background: #1d4ed8; }
+
+    .table-wrap {
+      background: white; border: 1px solid #e2e8f0; border-radius: 8px;
+      overflow: hidden; overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: #f8fafc; padding: 9px 12px;
+      text-align: left; font-size: 11px; font-weight: 700;
+      color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;
+      border-bottom: 1px solid #e2e8f0; white-space: nowrap;
+    }
+    tbody td {
+      padding: 11px 12px; border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #fafbfc; }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 9999px;
+      font-size: 11px; font-weight: 600;
+    }
+    .badge-active { background: #dcfce7; color: #15803d; }
+    .badge-paused { background: #f1f5f9; color: #94a3b8; }
+    .badge-default { background: #dbeafe; color: #1d4ed8; font-size: 10px; margin-left: 4px; }
+
+    /* ── Progress bar ── */
+    .progress-wrap { min-width: 80px; }
+    .progress-bar { height: 5px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; }
+    .fill-green  { background: #22c55e; }
+    .fill-yellow { background: #f59e0b; }
+    .fill-red    { background: #ef4444; }
+    .progress-pct { font-size: 11px; color: #64748b; margin-top: 3px; }
+
+    /* ── Action buttons ── */
+    .actions { display: flex; gap: 5px; flex-wrap: nowrap; }
+    .btn-xs {
+      padding: 3px 9px; border-radius: 4px; border: 1px solid #e2e8f0;
+      background: white; font-size: 11px; font-weight: 500; color: #475569;
+      cursor: pointer; white-space: nowrap;
+    }
+    .btn-xs:hover { background: #f8fafc; border-color: #cbd5e1; }
+    .btn-xs-warn  { color: #b45309; border-color: #fde68a; }
+    .btn-xs-warn:hover  { background: #fffbeb; }
+    .btn-xs-green { color: #15803d; border-color: #bbf7d0; }
+    .btn-xs-green:hover { background: #f0fdf4; }
+    .btn-xs-red   { color: #b91c1c; border-color: #fecaca; }
+    .btn-xs-red:hover   { background: #fef2f2; }
+
+    /* ── Modal ── */
+    #modal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(15,23,42,0.55);
+      align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    #modal.open { display: flex; }
+    .modal-card {
+      background: white; border-radius: 10px; padding: 28px;
+      width: 500px; max-width: 95vw; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .modal-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 5px; }
+    .field input, .field textarea {
+      width: 100%; padding: 8px 10px; border: 1px solid #d1d5db;
+      border-radius: 6px; font-size: 13px; font-family: inherit;
+    }
+    .field input:focus, .field textarea:focus {
+      outline: none; border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    }
+    .field textarea { resize: vertical; min-height: 60px; }
+    .field-hint { font-size: 11px; color: #94a3b8; margin-top: 3px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .field-check { display: flex; align-items: center; gap: 8px; }
+    .field-check input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
+    .field-check label { font-size: 13px; font-weight: 500; color: #374151; cursor: pointer; margin: 0; }
+    .modal-footer {
+      display: flex; justify-content: flex-end; gap: 10px;
+      margin-top: 22px; padding-top: 18px; border-top: 1px solid #f1f5f9;
+    }
+    .btn-cancel {
+      padding: 7px 16px; background: white; border: 1px solid #e2e8f0;
+      border-radius: 6px; font-size: 13px; color: #64748b; cursor: pointer;
+    }
+    .btn-cancel:hover { background: #f8fafc; }
+    .btn-save {
+      padding: 7px 18px; background: #2563eb; color: white;
+      border: none; border-radius: 6px; font-size: 13px; font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-save:hover { background: #1d4ed8; }
+    .modal-error { color: #dc2626; font-size: 12px; margin-top: 10px; }
+
+    /* ── Empty state ── */
+    .empty { text-align: center; padding: 48px 24px; color: #94a3b8; }
+    .empty p { margin-top: 8px; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<!-- ── Key Entry Overlay ─────────────────────────────────────────────── -->
+<div id="keyOverlay">
+  <div class="key-card">
+    <h2>Lead Router</h2>
+    <p>Enter your admin key to access the dashboard</p>
+    <input type="password" id="keyInput" placeholder="Admin key" autocomplete="off"
+           onkeydown="if(event.key==='Enter') saveKey()">
+    <button onclick="saveKey()">Continue</button>
+    <div id="keyError"></div>
+  </div>
+</div>
+
+<!-- ── Main App ──────────────────────────────────────────────────────── -->
+<div id="app">
+  <header class="header">
+    <div class="header-left">
+      <div class="dot"></div>
+      <h1>Lead Router Admin</h1>
+    </div>
+    <div class="header-right">
+      <button class="btn-signout" onclick="signOut()">Sign out</button>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Total Advisors</div>
+      <div class="stat-value" id="statTotal">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Active</div>
+      <div class="stat-value" id="statActive">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Appts This Month</div>
+      <div class="stat-value" id="statMonth">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Appts This Week</div>
+      <div class="stat-value" id="statWeek">—</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <h2>Advisors</h2>
+      <button class="btn-add" onclick="openAdd()">+ Add Advisor</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Calendar URL</th>
+            <th>Licensed States</th>
+            <th style="text-align:center">Target/Mo</th>
+            <th style="text-align:center">This Month</th>
+            <th style="text-align:center">This Week</th>
+            <th>% to Target</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal ─────────────────────────────────────────────────────────── -->
+<div id="modal">
+  <div class="modal-card">
+    <h3 id="modalTitle"></h3>
+
+    <!-- Advisor fields (add / edit) -->
+    <div id="advisorFields">
+      <div class="field">
+        <label>Name *</label>
+        <input type="text" id="fName" placeholder="e.g. Sarah">
+      </div>
+      <div class="field">
+        <label>Calendar URL *</label>
+        <input type="url" id="fCalUrl" placeholder="https://calendly.com/...">
+      </div>
+      <div class="field">
+        <label>Licensed States</label>
+        <input type="text" id="fStates" placeholder="Texas, Oklahoma, Florida">
+        <div class="field-hint">Comma-separated. Must match exactly what leads send (e.g. "Texas" not "TX").</div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Monthly Target</label>
+          <input type="number" id="fTarget" min="1" value="10">
+        </div>
+        <div class="field">
+          <label>Priority Boost</label>
+          <input type="number" id="fBoost" min="0" step="0.1" value="0">
+          <div class="field-hint">0 = none. Higher = preferred.</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <textarea id="fNotes" placeholder="Internal notes (optional)"></textarea>
+      </div>
+      <div class="field-check">
+        <input type="checkbox" id="fActive" checked>
+        <label for="fActive">Active (receives leads)</label>
+      </div>
+    </div>
+
+    <!-- Set counts fields -->
+    <div id="countsFields" style="display:none">
+      <p style="color:#64748b;font-size:13px;margin-bottom:18px">
+        Update the current appointment counts for this advisor.
+        Use this each week or to correct a number after a manual booking.
+      </p>
+      <div class="field-row">
+        <div class="field">
+          <label>Appointments This Month</label>
+          <input type="number" id="cMonth" min="0">
+        </div>
+        <div class="field">
+          <label>Appointments This Week</label>
+          <input type="number" id="cWeek" min="0">
+        </div>
+      </div>
+    </div>
+
+    <div id="modalError" class="modal-error"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="submitModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────
+  let adminKey = localStorage.getItem('adminKey') || '';
+  let advisors = [];
+  let mode     = ''; // 'add' | 'edit' | 'counts'
+  let activeId = '';
+
+  // ── Auth ───────────────────────────────────────────────────────────────
+  async function saveKey() {
+    const val = document.getElementById('keyInput').value.trim();
+    if (!val) return;
+    adminKey = val;
+
+    // Validate by hitting a protected endpoint
+    const res = await api('/advisors');
+    if (res.ok) {
+      localStorage.setItem('adminKey', adminKey);
+      showApp();
+      load();
+    } else {
+      document.getElementById('keyError').textContent = 'Invalid key. Try again.';
+      adminKey = '';
+    }
+  }
+
+  function signOut() {
+    localStorage.removeItem('adminKey');
+    adminKey = '';
+    advisors = [];
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('keyOverlay').style.display = 'flex';
+    document.getElementById('keyInput').value = '';
+    document.getElementById('keyError').textContent = '';
+  }
+
+  function showApp() {
+    document.getElementById('keyOverlay').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+  }
+
+  // ── API helper ─────────────────────────────────────────────────────────
+  function api(path, opts = {}) {
+    const { body, ...rest } = opts;
+    return fetch(path, {
+      ...rest,
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey },
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    });
+  }
+
+  async function apiJSON(path, opts = {}) {
+    const res = await api(path, opts);
+    if (res.status === 401) { signOut(); throw new Error('Unauthorized'); }
+    return res.json();
+  }
+
+  // ── Data ───────────────────────────────────────────────────────────────
+  async function load() {
+    advisors = await apiJSON('/advisors');
+    renderStats();
+    renderTable();
+  }
+
+  // ── Stats ──────────────────────────────────────────────────────────────
+  function renderStats() {
+    document.getElementById('statTotal').textContent  = advisors.length;
+    document.getElementById('statActive').textContent = advisors.filter(a => a.isActive).length;
+    document.getElementById('statMonth').textContent  = advisors.reduce((s, a) => s + a.appointmentsDeliveredThisMonth, 0);
+    document.getElementById('statWeek').textContent   = advisors.reduce((s, a) => s + a.appointmentsDeliveredThisWeek, 0);
+  }
+
+  // ── Table ──────────────────────────────────────────────────────────────
+  function renderTable() {
+    const tbody = document.getElementById('tableBody');
+
+    if (!advisors.length) {
+      tbody.innerHTML = `<tr><td colspan="9"><div class="empty">
+        <strong>No advisors yet</strong>
+        <p>Click "Add Advisor" to get started.</p>
+      </div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = advisors.map(a => {
+      const pct     = a.targetAppointmentsPerMonth > 0
+        ? Math.round((a.appointmentsDeliveredThisMonth / a.targetAppointmentsPerMonth) * 100)
+        : 0;
+      const fillW   = Math.min(pct, 100);
+      const fillCls = pct >= 90 ? 'fill-red' : pct >= 70 ? 'fill-yellow' : 'fill-green';
+      const states  = Array.isArray(a.licensedStates) ? a.licensedStates.join(', ') : (a.licensedStates || '—');
+      const urlText = a.calendarUrl
+        ? a.calendarUrl.replace(/^https?:\/\//, '').replace(/\/$/, '').slice(0, 32) + (a.calendarUrl.length > 40 ? '…' : '')
+        : '—';
+
+      return `<tr>
+        <td>
+          <strong>${esc(a.name)}</strong>
+          ${a.isDefault ? '<span class="badge badge-default">default</span>' : ''}
+        </td>
+        <td style="font-size:12px">
+          ${a.calendarUrl
+            ? `<a href="${esc(a.calendarUrl)}" target="_blank" style="color:#2563eb">${esc(urlText)}</a>`
+            : '—'}
+        </td>
+        <td style="font-size:12px; max-width:180px">${esc(states)}</td>
+        <td style="text-align:center">${a.targetAppointmentsPerMonth}</td>
+        <td style="text-align:center">${a.appointmentsDeliveredThisMonth}</td>
+        <td style="text-align:center">${a.appointmentsDeliveredThisWeek}</td>
+        <td>
+          <div class="progress-wrap">
+            <div class="progress-bar">
+              <div class="progress-fill ${fillCls}" style="width:${fillW}%"></div>
+            </div>
+            <div class="progress-pct">${pct}%</div>
+          </div>
+        </td>
+        <td><span class="badge ${a.isActive ? 'badge-active' : 'badge-paused'}">${a.isActive ? 'Active' : 'Paused'}</span></td>
+        <td>
+          <div class="actions">
+            <button class="btn-xs" onclick="openEdit('${a.id}')">Edit</button>
+            <button class="btn-xs" onclick="openCounts('${a.id}')">Set Counts</button>
+            ${a.isActive
+              ? `<button class="btn-xs btn-xs-warn" onclick="toggle('${a.id}', false)">Pause</button>`
+              : `<button class="btn-xs btn-xs-green" onclick="toggle('${a.id}', true)">Activate</button>`}
+            ${!a.isDefault
+              ? `<button class="btn-xs btn-xs-red" onclick="remove('${a.id}')">Delete</button>`
+              : ''}
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Quick actions ──────────────────────────────────────────────────────
+  async function toggle(id, isActive) {
+    await apiJSON('/advisors/toggle-active', { method: 'POST', body: { id, isActive } });
+    load();
+  }
+
+  async function remove(id) {
+    const a = advisors.find(x => x.id === id);
+    if (!confirm(`Delete ${a?.name}? This cannot be undone.`)) return;
+    const res = await api(`/advisors/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!data.success) { alert(data.error || 'Failed to delete.'); return; }
+    load();
+  }
+
+  // ── Modals ─────────────────────────────────────────────────────────────
+  function openAdd() {
+    mode = 'add'; activeId = '';
+    setTitle('Add Advisor');
+    showAdvisorFields(null);
+    openModal();
+  }
+
+  function openEdit(id) {
+    mode = 'edit'; activeId = id;
+    setTitle('Edit Advisor');
+    showAdvisorFields(advisors.find(a => a.id === id));
+    openModal();
+  }
+
+  function openCounts(id) {
+    mode = 'counts'; activeId = id;
+    const a = advisors.find(x => x.id === id);
+    setTitle(`Set Counts — ${a.name}`);
+    document.getElementById('advisorFields').style.display = 'none';
+    document.getElementById('countsFields').style.display  = 'block';
+    document.getElementById('cMonth').value = a.appointmentsDeliveredThisMonth;
+    document.getElementById('cWeek').value  = a.appointmentsDeliveredThisWeek;
+    openModal();
+  }
+
+  function showAdvisorFields(a) {
+    document.getElementById('advisorFields').style.display = 'block';
+    document.getElementById('countsFields').style.display  = 'none';
+    document.getElementById('fName').value   = a?.name || '';
+    document.getElementById('fCalUrl').value = a?.calendarUrl || '';
+    document.getElementById('fStates').value = Array.isArray(a?.licensedStates)
+      ? a.licensedStates.join(', ')
+      : (a?.licensedStates || '');
+    document.getElementById('fTarget').value  = a?.targetAppointmentsPerMonth ?? 10;
+    document.getElementById('fBoost').value   = a?.manualPriorityBoost ?? 0;
+    document.getElementById('fNotes').value   = a?.notes || '';
+    document.getElementById('fActive').checked = a ? a.isActive : true;
+  }
+
+  function openModal()  { document.getElementById('modal').classList.add('open'); clearModalError(); }
+  function closeModal() { document.getElementById('modal').classList.remove('open'); }
+  function setTitle(t)  { document.getElementById('modalTitle').textContent = t; }
+  function clearModalError() { document.getElementById('modalError').textContent = ''; }
+  function showModalError(msg) { document.getElementById('modalError').textContent = msg; }
+
+  async function submitModal() {
+    clearModalError();
+
+    if (mode === 'counts') {
+      const body = {
+        id: activeId,
+        appointmentsDeliveredThisMonth: Number(document.getElementById('cMonth').value),
+        appointmentsDeliveredThisWeek:  Number(document.getElementById('cWeek').value),
+      };
+      const data = await apiJSON('/advisors/set-counts', { method: 'POST', body });
+      if (data.error) { showModalError(data.error); return; }
+      closeModal(); load();
+      return;
+    }
+
+    const name   = document.getElementById('fName').value.trim();
+    const calUrl = document.getElementById('fCalUrl').value.trim();
+    if (!name)   { showModalError('Name is required.'); return; }
+    if (!calUrl) { showModalError('Calendar URL is required.'); return; }
+
+    const rawStates    = document.getElementById('fStates').value;
+    const licensedStates = rawStates.split(',').map(s => s.trim()).filter(Boolean);
+
+    const body = {
+      name,
+      calendarUrl: calUrl,
+      licensedStates,
+      targetAppointmentsPerMonth: parseInt(document.getElementById('fTarget').value) || 10,
+      manualPriorityBoost: parseFloat(document.getElementById('fBoost').value) || 0,
+      notes: document.getElementById('fNotes').value.trim(),
+      isActive: document.getElementById('fActive').checked,
+    };
+
+    let data;
+    if (mode === 'add') {
+      data = await apiJSON('/advisors', { method: 'POST', body });
+    } else {
+      data = await apiJSON('/advisors/update', { method: 'POST', body: { id: activeId, ...body } });
+    }
+
+    if (data.error) { showModalError(data.error); return; }
+    closeModal(); load();
+  }
+
+  // Close modal on overlay click
+  document.getElementById('modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal')) closeModal();
+  });
+
+  // ── Init ───────────────────────────────────────────────────────────────
+  if (adminKey) {
+    api('/advisors').then(res => {
+      if (res.ok) { showApp(); load(); }
+      else showApp(); // show UI, will redirect if API calls fail
+    }).catch(() => {});
+  }
+</script>
+</body>
+</html>
