@@ -18,6 +18,7 @@
 require('dotenv').config();
 
 const express = require('express');
+const cors    = require('cors');
 const path    = require('path');
 const app     = express();
 
@@ -25,7 +26,9 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── API routes ────────────────────────────────────────────────────────────
-app.use('/route-lead', require('./src/routes/leads'));
+// /route-lead is called from external pages (GHL) so it needs CORS open.
+// /advisors is admin-only and stays locked down by the X-Admin-Key header.
+app.use('/route-lead', cors(), require('./src/routes/leads'));
 app.use('/advisors',   require('./src/routes/advisors'));
 
 // ── Admin UI — clean URL ───────────────────────────────────────────────────
