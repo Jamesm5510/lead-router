@@ -1,57 +1,83 @@
 [
   {
-    "id": "john",
-    "name": "John",
+    "id": "dina-mabry",
+    "name": "Dina Mabry",
     "isDefault": true,
     "licensedStates": [
-      "Texas",
-      "California",
-      "Florida",
-      "New York",
-      "Ohio",
-      "Georgia",
-      "North Carolina",
-      "Michigan",
-      "Pennsylvania",
-      "Illinois"
-    ],
-    "targetAppointmentsPerMonth": 20,
-    "appointmentsDeliveredThisMonth": 18,
-    "appointmentsDeliveredThisWeek": 4,
-    "calendarUrl": "https://calendly.com/john-advisor",
-    "isActive": true,
-    "manualPriorityBoost": 0,
-    "notes": "Default fallback advisor. Licensed broadly across 10 states."
-  },
-  {
-    "id": "blaine",
-    "name": "Blaine",
-    "isDefault": false,
-    "licensedStates": [
-      "Texas",
-      "Oklahoma"
-    ],
-    "targetAppointmentsPerMonth": 15,
-    "appointmentsDeliveredThisMonth": 7,
-    "appointmentsDeliveredThisWeek": 2,
-    "calendarUrl": "https://calendly.com/blaine-advisor",
-    "isActive": true,
-    "manualPriorityBoost": 0,
-    "notes": "Specializes in Texas and Oklahoma. More constrained territory."
-  },
-  {
-    "id": "james-mabry",
-    "name": "James Mabry",
-    "isDefault": false,
-    "licensedStates": [
-      "California",
-      "Ohio",
-      "Florida"
+      "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
+      "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho",
+      "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana",
+      "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota",
+      "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada",
+      "New Hampshire", "New Jersey", "New Mexico", "New York",
+      "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon",
+      "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota",
+      "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington",
+      "West Virginia", "Wisconsin", "Wyoming"
     ],
     "targetAppointmentsPerMonth": 10,
     "appointmentsDeliveredThisMonth": 0,
     "appointmentsDeliveredThisWeek": 0,
-    "calendarUrl": "https://api.leadconnectorhq.com/widget/booking/YYAVG8oaAtlW0awOzB8Z",
+    "calendarUrl": "https://api.leadconnectorhq.com/widget/booking/XQMGjUATQSJMNXkWmXWw",
+    "isActive": true,
+    "manualPriorityBoost": 0,
+    "notes": "Default fallback advisor. Licensed in all 50 states."
+  },
+  {
+    "id": "blaine-webb",
+    "name": "Blaine Webb",
+    "isDefault": false,
+    "licensedStates": [
+      "Texas", "Alaska", "California", "Colorado", "Delaware", "Florida",
+      "Georgia", "Idaho", "Illinois", "Louisiana", "Maryland", "Michigan",
+      "Minnesota", "Missouri", "North Carolina", "Oklahoma", "Pennsylvania",
+      "South Carolina", "Tennessee", "Utah", "Wisconsin"
+    ],
+    "targetAppointmentsPerMonth": 15,
+    "appointmentsDeliveredThisMonth": 0,
+    "appointmentsDeliveredThisWeek": 0,
+    "calendarUrl": "https://api.leadconnectorhq.com/widget/booking/4MAEpmIO3oToRMW7yv1r",
+    "isActive": true,
+    "manualPriorityBoost": 0,
+    "notes": ""
+  },
+  {
+    "id": "john-gillet",
+    "name": "John Gillet",
+    "isDefault": false,
+    "licensedStates": [
+      "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
+      "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho",
+      "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana",
+      "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota",
+      "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada",
+      "New Hampshire", "New Jersey", "New Mexico", "North Carolina",
+      "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania",
+      "Rhode Island", "South Carolina", "South Dakota", "Tennessee",
+      "Texas", "Utah", "Vermont", "Virginia", "Washington",
+      "West Virginia", "Wisconsin", "Wyoming"
+    ],
+    "targetAppointmentsPerMonth": 20,
+    "appointmentsDeliveredThisMonth": 0,
+    "appointmentsDeliveredThisWeek": 0,
+    "calendarUrl": "https://api.leadconnectorhq.com/widget/booking/5L6BEEEGrokbMf5jUncH",
+    "isActive": false,
+    "manualPriorityBoost": 0,
+    "notes": "Licensed in all states except New York. Currently inactive."
+  },
+  {
+    "id": "randall-hargett",
+    "name": "Randall Hargett",
+    "isDefault": false,
+    "licensedStates": [
+      "Alabama", "Arkansas", "Colorado", "Florida", "Georgia", "Louisiana",
+      "Michigan", "Minnesota", "Mississippi", "North Carolina", "South Carolina",
+      "Tennessee", "Texas", "Virginia"
+    ],
+    "targetAppointmentsPerMonth": 12,
+    "appointmentsDeliveredThisMonth": 6,
+    "appointmentsDeliveredThisWeek": 0,
+    "calendarUrl": "https://api.leadconnectorhq.com/widget/booking/4imZibBqeJpAndDvHjzW",
     "isActive": true,
     "manualPriorityBoost": 0,
     "notes": ""
