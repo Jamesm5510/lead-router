@@ -42,9 +42,9 @@ function scoreAdvisor(advisor) {
  * @param {object} lead - { name, email, phone, state }
  * @returns {object} - { assignedAdvisor, calendarUrl, reasoning }
  */
-function routeLead(lead) {
+async function routeLead(lead) {
   const { state } = lead;
-  const allAdvisors = readAdvisors();
+  const allAdvisors = await readAdvisors();
 
   // ── Step 1: licensed in this state ──────────────────────────────────────
   const licensedForState = allAdvisors.filter(a =>

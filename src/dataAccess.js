@@ -1,92 +1,138 @@
 /**
  * dataAccess.js
  *
- * All reads and writes to advisors.json go through here.
- * Keeping data access separate means you can swap to a DB later
- * by only changing this file — routing logic stays untouched.
+ * Advisor data lives in Airtable. All reads and writes go through here.
+ * Routing logic and routes stay untouched — only this file changed.
  */
 
-const fs   = require('fs');
-const path = require('path');
+const AIRTABLE_TOKEN   = process.env.AIRTABLE_TOKEN;
+const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || 'appHJlW9fAp3BzPfg';
+const TABLE            = 'Advisors';
+const BASE_URL         = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(TABLE)}`;
 
-const DATA_FILE = path.join(__dirname, '../data/advisors.json');
+const HEADERS = {
+  'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
+  'Content-Type':  'application/json',
+};
 
-/** Read all advisors from disk. Always fresh — no in-memory caching. */
-function readAdvisors() {
-  const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-  return JSON.parse(raw);
-}
+const ALL_50_STATES = [
+  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado',
+  'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho',
+  'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana',
+  'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota',
+  'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada',
+  'New Hampshire', 'New Jersey', 'New Mexico', 'New York',
+  'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon',
+  'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota',
+  'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington',
+  'West Virginia', 'Wisconsin', 'Wyoming',
+];
 
-/** Overwrite advisors.json with the provided array. */
-function writeAdvisors(advisors) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(advisors, null, 2), 'utf-8');
-}
-
-/** Find a single advisor by their id field. Returns null if not found. */
-function getAdvisorById(id) {
-  return readAdvisors().find(a => a.id === id) || null;
-}
-
-/**
- * Create a new advisor. Auto-generates an id from the name.
- * New advisors are never set as isDefault.
- */
-function createAdvisor(data) {
-  const advisors = readAdvisors();
-
-  // Build a url-safe id from the name, with a collision suffix if needed
-  const baseId = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-  let id = baseId;
-  let n = 1;
-  while (advisors.find(a => a.id === id)) {
-    id = `${baseId}-${n++}`;
+function parseStates(raw) {
+  if (!raw) return [];
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === 'all') return ALL_50_STATES;
+  if (normalized.startsWith('all except')) {
+    const excluded = normalized.replace('all except', '').trim();
+    return ALL_50_STATES.filter(s => s.toLowerCase() !== excluded);
   }
+  return raw.split(/[,\n]+/).map(s => s.trim()).filter(Boolean);
+}
 
-  const newAdvisor = {
-    id,
-    name: data.name,
-    isDefault: false,
-    licensedStates: data.licensedStates || [],
-    targetAppointmentsPerMonth: Number(data.targetAppointmentsPerMonth) || 10,
-    appointmentsDeliveredThisMonth: 0,
-    appointmentsDeliveredThisWeek: 0,
-    calendarUrl: data.calendarUrl || '',
-    isActive: data.isActive !== false,
-    manualPriorityBoost: Number(data.manualPriorityBoost) || 0,
-    notes: data.notes || '',
+function parseTarget(raw) {
+  if (!raw) return 10;
+  const match = String(raw).match(/\d+/);
+  return match ? Number(match[0]) : 10;
+}
+
+/** Map an Airtable record to the advisor shape the rest of the app expects. */
+function toAdvisor(record) {
+  const f = record.fields;
+  return {
+    id:                             record.id,
+    name:                           f['Name']                       || '',
+    isDefault:                      f['Is Default']                 || false,
+    licensedStates:                 parseStates(f['States']         || ''),
+    targetAppointmentsPerMonth:     parseTarget(f['Number of Appointments']),
+    appointmentsDeliveredThisMonth: Number(f['Appointments This Month']) || 0,
+    appointmentsDeliveredThisWeek:  Number(f['Appointments This Week'])  || 0,
+    calendarUrl:                    f['Calendar URL']               || '',
+    isActive:                       (f['Client Current Status'] === 'Active' || f['Client Current Status'] === 'Trial'),
+    manualPriorityBoost:            Number(f['Priority Boost'])     || 0,
+    notes:                          '',
+  };
+}
+
+/** Fetch all advisors from Airtable. */
+async function readAdvisors() {
+  const res = await fetch(BASE_URL, { headers: HEADERS });
+  if (!res.ok) throw new Error(`Airtable read failed: ${res.status}`);
+  const data = await res.json();
+  return data.records.map(toAdvisor);
+}
+
+/** Find a single advisor by Airtable record ID. */
+async function getAdvisorById(id) {
+  const res = await fetch(`${BASE_URL}/${id}`, { headers: HEADERS });
+  if (!res.ok) return null;
+  return toAdvisor(await res.json());
+}
+
+/** Create a new advisor record in Airtable. */
+async function createAdvisor(data) {
+  const fields = {
+    'Name':                     data.name,
+    'Calendar URL':             data.calendarUrl               || '',
+    'States':                   (data.licensedStates || []).join(', '),
+    'Number of Appointments':   String(data.targetAppointmentsPerMonth || 10),
+    'Appointments This Month':  0,
+    'Appointments This Week':   0,
+    'Client Current Status':    data.isActive !== false ? 'Active' : 'Paused',
+    'Is Default':               false,
+    'Priority Boost':           Number(data.manualPriorityBoost) || 0,
   };
 
-  advisors.push(newAdvisor);
-  writeAdvisors(advisors);
-  return newAdvisor;
+  const res = await fetch(BASE_URL, {
+    method:  'POST',
+    headers: HEADERS,
+    body:    JSON.stringify({ fields }),
+  });
+  if (!res.ok) throw new Error(`Airtable create failed: ${res.status}`);
+  return toAdvisor(await res.json());
 }
 
-/**
- * Merge `updates` into the advisor with the given id and persist to disk.
- * Returns the updated advisor object, or null if the id wasn't found.
- */
-function updateAdvisor(id, updates) {
-  const advisors = readAdvisors();
-  const idx = advisors.findIndex(a => a.id === id);
-  if (idx === -1) return null;
+/** Merge updates into an advisor record. Returns updated advisor or null. */
+async function updateAdvisor(id, updates) {
+  const fields = {};
 
-  advisors[idx] = { ...advisors[idx], ...updates };
-  writeAdvisors(advisors);
-  return advisors[idx];
+  if (updates.name                           !== undefined) fields['Name']                    = updates.name;
+  if (updates.calendarUrl                    !== undefined) fields['Calendar URL']            = updates.calendarUrl;
+  if (updates.licensedStates                 !== undefined) fields['States']                  = updates.licensedStates.join(', ');
+  if (updates.targetAppointmentsPerMonth     !== undefined) fields['Number of Appointments']  = String(updates.targetAppointmentsPerMonth);
+  if (updates.appointmentsDeliveredThisMonth !== undefined) fields['Appointments This Month'] = updates.appointmentsDeliveredThisMonth;
+  if (updates.appointmentsDeliveredThisWeek  !== undefined) fields['Appointments This Week']  = updates.appointmentsDeliveredThisWeek;
+  if (updates.isActive                       !== undefined) fields['Client Current Status']   = updates.isActive ? 'Active' : 'Paused';
+  if (updates.manualPriorityBoost            !== undefined) fields['Priority Boost']          = updates.manualPriorityBoost;
+
+  const res = await fetch(`${BASE_URL}/${id}`, {
+    method:  'PATCH',
+    headers: HEADERS,
+    body:    JSON.stringify({ fields }),
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Airtable update failed: ${res.status}`);
+  return toAdvisor(await res.json());
 }
 
-/**
- * Delete an advisor by id. Returns true if deleted, false if not found.
- * The default advisor cannot be deleted — enforce this at the route level.
- */
-function deleteAdvisor(id) {
-  const advisors = readAdvisors();
-  const idx = advisors.findIndex(a => a.id === id);
-  if (idx === -1) return false;
-
-  advisors.splice(idx, 1);
-  writeAdvisors(advisors);
+/** Delete an advisor record. Returns true if deleted, false if not found. */
+async function deleteAdvisor(id) {
+  const res = await fetch(`${BASE_URL}/${id}`, {
+    method:  'DELETE',
+    headers: HEADERS,
+  });
+  if (res.status === 404) return false;
+  if (!res.ok) throw new Error(`Airtable delete failed: ${res.status}`);
   return true;
 }
 
-module.exports = { readAdvisors, writeAdvisors, getAdvisorById, createAdvisor, updateAdvisor, deleteAdvisor };
+module.exports = { readAdvisors, getAdvisorById, createAdvisor, updateAdvisor, deleteAdvisor };
