@@ -51,12 +51,12 @@ function toAdvisor(record) {
   return {
     id:                             record.id,
     name:                           f['Name']                       || '',
-    isDefault:                      f['Is Default']                 || false,
-    licensedStates:                 parseStates(f['States']         || ''),
-    targetAppointmentsPerMonth:     parseTarget(f['Number of Appointments']),
-    appointmentsDeliveredThisMonth: Number(f['Appointments This Month']) || 0,
-    appointmentsDeliveredThisWeek:  Number(f['Appointments This Week'])  || 0,
-    calendarUrl:                    f['Calendar URL']               || '',
+    isDefault:                      f['🟠Is Default']                 || false,
+    licensedStates:                 parseStates(f['🟠States']         || ''),
+    targetAppointmentsPerMonth:     parseTarget(f['🟠Number of Appointments']),
+    appointmentsDeliveredThisMonth: Number(f['🟠Appointments This Month']) || 0,
+    appointmentsDeliveredThisWeek:  Number(f['🟠Appointments This Week'])  || 0,
+    calendarUrl:                    f['🟠Calendar URL']               || '',
     isActive:                       (f['Client Current Status'] === 'Active' || f['Client Current Status'] === 'Trial'),
     manualPriorityBoost:            Number(f['Priority Boost'])     || 0,
     notes:                          '',
@@ -82,14 +82,14 @@ async function getAdvisorById(id) {
 async function createAdvisor(data) {
   const fields = {
     'Name':                     data.name,
-    'Calendar URL':             data.calendarUrl               || '',
-    'States':                   (data.licensedStates || []).join(', '),
-    'Number of Appointments':   String(data.targetAppointmentsPerMonth || 10),
-    'Appointments This Month':  0,
-    'Appointments This Week':   0,
-    'Client Current Status':    data.isActive !== false ? 'Active' : 'Paused',
-    'Is Default':               false,
-    'Priority Boost':           Number(data.manualPriorityBoost) || 0,
+    '🟠Calendar URL':             data.calendarUrl               || '',
+    '🟠States':                   (data.licensedStates || []).join(', '),
+    '🟠Number of Appointments':   String(data.targetAppointmentsPerMonth || 10),
+    '🟠Appointments This Month':  0,
+    '🟠Appointments This Week':   0,
+    'Client Current Status':      data.isActive !== false ? 'Active' : 'Paused',
+    '🟠Is Default':               false,
+    '🟠Priority Boost':           Number(data.manualPriorityBoost) || 0,
   };
 
   const res = await fetch(BASE_URL, {
@@ -106,13 +106,13 @@ async function updateAdvisor(id, updates) {
   const fields = {};
 
   if (updates.name                           !== undefined) fields['Name']                    = updates.name;
-  if (updates.calendarUrl                    !== undefined) fields['Calendar URL']            = updates.calendarUrl;
-  if (updates.licensedStates                 !== undefined) fields['States']                  = updates.licensedStates.join(', ');
-  if (updates.targetAppointmentsPerMonth     !== undefined) fields['Number of Appointments']  = String(updates.targetAppointmentsPerMonth);
-  if (updates.appointmentsDeliveredThisMonth !== undefined) fields['Appointments This Month'] = updates.appointmentsDeliveredThisMonth;
-  if (updates.appointmentsDeliveredThisWeek  !== undefined) fields['Appointments This Week']  = updates.appointmentsDeliveredThisWeek;
-  if (updates.isActive                       !== undefined) fields['Client Current Status']   = updates.isActive ? 'Active' : 'Paused';
-  if (updates.manualPriorityBoost            !== undefined) fields['Priority Boost']          = updates.manualPriorityBoost;
+  if (updates.calendarUrl                    !== undefined) fields['🟠Calendar URL']            = updates.calendarUrl;
+  if (updates.licensedStates                 !== undefined) fields['🟠States']                  = updates.licensedStates.join(', ');
+  if (updates.targetAppointmentsPerMonth     !== undefined) fields['🟠Number of Appointments']  = String(updates.targetAppointmentsPerMonth);
+  if (updates.appointmentsDeliveredThisMonth !== undefined) fields['🟠Appointments This Month'] = updates.appointmentsDeliveredThisMonth;
+  if (updates.appointmentsDeliveredThisWeek  !== undefined) fields['🟠Appointments This Week']  = updates.appointmentsDeliveredThisWeek;
+  if (updates.isActive                       !== undefined) fields['Client Current Status']     = updates.isActive ? 'Active' : 'Paused';
+  if (updates.manualPriorityBoost            !== undefined) fields['🟠Priority Boost']          = updates.manualPriorityBoost;
 
   const res = await fetch(`${BASE_URL}/${id}`, {
     method:  'PATCH',
