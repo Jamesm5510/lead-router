@@ -15,7 +15,7 @@
  *   7. If no one passes capacity, fall back to the default advisor
  */
 
-const { readAdvisors } = require('./dataAccess');
+const { readAdvisors, updateAdvisor } = require('./dataAccess');
 
 /**
  * Score an advisor for selection. Lower score = higher priority.
@@ -117,6 +117,12 @@ async function routeLead(lead) {
       `No advisors were under capacity for ${state}. ` +
       `Falling back to default advisor ${defaultAdvisor.name}.`;
   }
+
+  // ── Increment count immediately so the next lead sees updated capacity ────
+  await updateAdvisor(assignedAdvisor.id, {
+    appointmentsDeliveredThisMonth: assignedAdvisor.appointmentsDeliveredThisMonth + 1,
+    appointmentsDeliveredThisWeek:  assignedAdvisor.appointmentsDeliveredThisWeek  + 1,
+  });
 
   return {
     assignedAdvisor: assignedAdvisor.name,
