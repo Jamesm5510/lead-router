@@ -28,8 +28,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ── API routes ────────────────────────────────────────────────────────────
 // /route-lead is called from external pages (GHL) so it needs CORS open.
 // /advisors is admin-only and stays locked down by the X-Admin-Key header.
-app.use('/route-lead', cors(), require('./src/routes/leads'));
-app.use('/advisors',   require('./src/routes/advisors'));
+app.use('/route-lead',    cors(), require('./src/routes/leads'));
+app.use('/advisors',     require('./src/routes/advisors'));
+app.use('/zoom-webhook', require('./src/routes/zoom'));
 
 // ── Admin UI — clean URL ───────────────────────────────────────────────────
 app.get('/admin', (req, res) => {
