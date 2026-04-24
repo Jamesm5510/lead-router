@@ -13,7 +13,7 @@ const router  = express.Router();
 
 const OPENAI_API_KEY  = process.env.OPENAI_API_KEY;
 const AIRTABLE_TOKEN  = process.env.AIRTABLE_TOKEN;
-const AIRTABLE_BASE   = process.env.AIRTABLE_BASE;
+const AIRTABLE_BASE   = process.env.AIRTABLE_BASE_ID;
 const AIRTABLE_TABLE  = 'Appointments';
 
 // ── Download the VTT transcript from Zoom ────────────────────────────────────
