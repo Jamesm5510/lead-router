@@ -44,8 +44,8 @@ Fields to extract:
 - lead_quality_score: A score from 1-10 rating the quality of this lead
 - product_type_discussed: The product or coverage type discussed
 - medications: Any medications mentioned
-- has_dependents: Boolean - whether they have children or dependents
-- marital_status: The prospect's marital status
+- has_dependents: Must be exactly one of: "Yes", "No", or "Not Mentioned"
+- marital_status: Must be exactly one of: "Married", "Single", "Divorced", "Widowed", or "Not Mentioned"
 
 Transcript:
 ${transcriptText}
@@ -99,12 +99,12 @@ async function updateAirtableRecord(recordId, fields) {
         'What triggered their interest?': fields.what_triggered_interest,
         'Approximate Assets':           fields.approximate_investible_assets,
         'Approximate Monthly Income':   fields.approximate_monthly_income,
-        'Income Sources':               fields.income_sources,
-        'Health Conditions Mentioned':  fields.health_conditions,
+        'Income Sources':               Array.isArray(fields.income_sources) ? fields.income_sources.join(', ') : fields.income_sources,
+        'Health Conditions Mentioned':  Array.isArray(fields.health_conditions) ? fields.health_conditions.join(', ') : fields.health_conditions,
         'Age':                          fields.age,
         'Lead Quality':                 fields.lead_quality_score,
         'Product Type Discussed':       fields.product_type_discussed,
-        'Medications':                  fields.medications,
+        'Medications':                  Array.isArray(fields.medications) ? fields.medications.join(', ') : fields.medications,
         'Has Children/Dependents':      fields.has_dependents,
         'Marital Status':               fields.marital_status,
       },
