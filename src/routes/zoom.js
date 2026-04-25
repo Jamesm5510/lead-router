@@ -82,7 +82,7 @@ async function findAppointmentRecord(meetingId) {
 }
 
 // ── Update Airtable record ────────────────────────────────────────────────────
-async function updateAirtableRecord(recordId, fields, needsManualReview = false) {
+async function updateAirtableRecord(recordId, fields, needsManualReview = false, shareUrl = null) {
   const res = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE}/${encodeURIComponent(AIRTABLE_TABLE)}/${recordId}`, {
     method: 'PATCH',
     headers: {
@@ -108,6 +108,7 @@ async function updateAirtableRecord(recordId, fields, needsManualReview = false)
         'Has Children/Dependents':      fields.has_dependents,
         'Marital Status':               fields.marital_status,
         'Needs Manual Review?':         needsManualReview,
+        'Call Transcript URL':          shareUrl,
       },
     }),
   });
@@ -154,6 +155,7 @@ router.post('/', async (req, res) => {
     console.log(`[zoom] Transcript downloaded (${transcriptText.length} chars)`);
 
     const needsManualReview = transcriptText.length < 1000;
+    const shareUrl = obj.share_url || null;
 
     const fields = await extractFields(transcriptText);
     console.log('[zoom] Fields extracted:', JSON.stringify(fields, null, 2));
@@ -164,7 +166,7 @@ router.post('/', async (req, res) => {
       return;
     }
 
-    await updateAirtableRecord(record.id, fields, needsManualReview);
+    await updateAirtableRecord(record.id, fields, needsManualReview, shareUrl);
     console.log(`[zoom] Airtable record ${record.id} updated successfully`);
   } catch (err) {
     console.error('[zoom] Error processing webhook:', err.message);
