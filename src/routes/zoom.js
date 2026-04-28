@@ -67,7 +67,13 @@ Respond with only valid JSON, no explanation.`;
 
   if (!res.ok) throw new Error(`OpenAI request failed: ${res.status}`);
   const data = await res.json();
-  return JSON.parse(data.choices[0].message.content);
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('OpenAI returned empty response');
+  try {
+    return JSON.parse(content);
+  } catch (e) {
+    throw new Error(`OpenAI returned invalid JSON: ${content}`);
+  }
 }
 
 // ── Find Airtable record by meeting topic or host email ───────────────────────
@@ -158,6 +164,7 @@ router.post('/', async (req, res) => {
     const shareUrl = obj.share_url || null;
 
     const fields = await extractFields(transcriptText);
+    if (!fields) throw new Error('Field extraction returned null');
     console.log('[zoom] Fields extracted:', JSON.stringify(fields, null, 2));
 
     const record = await findAppointmentRecord(meetingId);
