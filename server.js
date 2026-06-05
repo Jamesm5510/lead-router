@@ -21,8 +21,9 @@ const express  = require('express');
 const cors     = require('cors');
 const path     = require('path');
 const app      = express();
-const adminAuth                = require('./src/middleware/adminAuth');
-const { syncMetaAdsToAirtable } = require('./src/jobs/metaSync');
+const adminAuth                  = require('./src/middleware/adminAuth');
+const { syncMetaAdsToAirtable }  = require('./src/jobs/metaSync');
+const { syncMetaSpendToAirtable } = require('./src/jobs/metaSpendSync');
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -48,6 +49,19 @@ app.post('/admin/sync-meta-ads', adminAuth, async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('[meta-sync] Unhandled error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Meta spend sync — POST /admin/sync-meta-spend ────────────────────────
+// Run on Tuesday around 2PM to populate Spend fields on current week's rows.
+// Requires X-Admin-Key header.
+app.post('/admin/sync-meta-spend', adminAuth, async (req, res) => {
+  try {
+    const result = await syncMetaSpendToAirtable();
+    res.json(result);
+  } catch (err) {
+    console.error('[spend-sync] Unhandled error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
