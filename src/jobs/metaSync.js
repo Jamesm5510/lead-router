@@ -181,10 +181,16 @@ async function syncMetaAdsToAirtable() {
     fetchRecentAdIds(),
   ]);
 
-  const newAds = activeAds.filter(ad => !recentAdIds.has(String(ad.id).trim()));
+  const TRACKED_EVENTS = new Set(['Complete Registration', 'Submit Application']);
+  const newAds = activeAds.filter(ad =>
+    TRACKED_EVENTS.has(mapOptimizationEvent(ad.adset)) &&
+    !recentAdIds.has(String(ad.id).trim())
+  );
 
+  const trackableAds = activeAds.filter(ad => TRACKED_EVENTS.has(mapOptimizationEvent(ad.adset)));
   console.log(
     `[meta-sync] ${activeAds.length} active in Meta | ` +
+    `${activeAds.length - trackableAds.length} skipped (engagement/retargeting) | ` +
     `${recentAdIds.size} already have rows this week | ` +
     `${newAds.length} to create`
   );
