@@ -17,10 +17,12 @@
 
 require('dotenv').config();
 
-const express = require('express');
-const cors    = require('cors');
-const path    = require('path');
-const app     = express();
+const express  = require('express');
+const cors     = require('cors');
+const path     = require('path');
+const app      = express();
+const adminAuth                = require('./src/middleware/adminAuth');
+const { syncMetaAdsToAirtable } = require('./src/jobs/metaSync');
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -35,6 +37,19 @@ app.use('/zoom-webhook', require('./src/routes/zoom'));
 // ── Admin UI — clean URL ───────────────────────────────────────────────────
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/admin.html'));
+});
+
+// ── Meta Ads sync — POST /admin/sync-meta-ads ─────────────────────────────
+// Trigger manually, or point a cron service at this endpoint hourly.
+// Requires X-Admin-Key header.
+app.post('/admin/sync-meta-ads', adminAuth, async (req, res) => {
+  try {
+    const result = await syncMetaAdsToAirtable();
+    res.json(result);
+  } catch (err) {
+    console.error('[meta-sync] Unhandled error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ── Health check ──────────────────────────────────────────────────────────
