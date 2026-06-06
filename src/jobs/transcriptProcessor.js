@@ -30,24 +30,36 @@ async function extractFields(transcriptText) {
         role: 'user',
         content: `You are analyzing a long-term care insurance sales call transcript. Extract the following fields as a JSON object. If a field cannot be determined, use null.
 
+CRITICAL — PROSPECT vs. HOUSEHOLD MEMBER:
+The prospect is the person on the call who is potentially buying coverage for themselves. A spouse, parent, or other family member may also be discussed — they are NOT the prospect. Keep this distinction rigidly throughout:
+- age, marital_status, has_dependents, health_qualification → about the PROSPECT only
+- If the prospect's spouse or family member is sick but the prospect is healthy, health_qualification is based on the PROSPECT's health, not the family member's
+- health_conditions is the only field that may capture household members — clearly attribute each condition (e.g. "husband: early-onset Alzheimer's (pending diagnosis)")
+
+COMPLETENESS RULE:
+For next_step_agreed_on, product_type_discussed, what_triggered_interest, main_objection, and lead_quality_reason — make a genuine attempt to extract these from the transcript. Only return null if there is truly nothing in the transcript. If a product was mentioned or shown by name, capture it. If next steps were discussed loosely, capture them. Leaving these blank when the transcript has the answer is an error.
+
+ANTI-GENERIC-LANGUAGE RULE:
+Do NOT use vague sanitized phrases like "financial preparation for future health challenges", "interested in long-term care options", or "family history of health concerns" unless the prospect literally said those words. The narrative fields (ai_call_summary, primary_concern, what_triggered_interest) must reflect the specific emotional reality of this call. If the trigger was a spouse's imminent diagnosis, say that. If the prospect is a former nurse who has worked with dementia patients, say that. Quote the actual situation — do not smooth it into marketing prose.
+
 Fields to extract:
 - prospect_name: The full name of the prospect/client on the call
-- ai_call_summary: A 2-4 sentence summary of the call
-- primary_concern: The prospect's main concern or reason for interest
-- lead_quality_reason: Why you gave the lead quality score you did
-- next_step_agreed_on: What the prospect and advisor agreed to do next
-- main_objection: The prospect's primary objection if any
-- what_triggered_interest: The real emotional trigger that made them reach out (not just "watched the webinar")
+- ai_call_summary: A 2-4 sentence summary of the call. Must capture the specific emotional trigger and situation — not generic interest in LTC. Include what products were discussed and what was agreed as a next step.
+- primary_concern: The prospect's specific main concern — not a generic phrase. What is the actual situation driving this call?
+- lead_quality_reason: Why you gave the lead quality score you did. Must reference specific things from the transcript (assets mentioned, health signals, urgency signals, barriers).
+- next_step_agreed_on: What the prospect and advisor explicitly agreed to do next. If the advisor said they would send something, capture it. If the prospect committed to anything, capture it.
+- main_objection: The prospect's primary objection or barrier to moving forward. This may not be a classic price objection — it could be a spouse who controls finances, needing to consult an attorney, etc. Null only if there is genuinely no friction or barrier mentioned.
+- what_triggered_interest: The real emotional trigger that made them reach out. Must be specific — not "watched the webinar." What life event, fear, or experience is driving this?
 - approximate_investible_assets: Estimated investible assets as a string (e.g. "$500,000")
 - approximate_monthly_income: Estimated monthly income as a string (e.g. "$4,000/month")
 - income_sources: List of income sources mentioned (e.g. "Social Security, pension")
-- health_conditions: Any health conditions mentioned
-- age: The prospect's age as a number
+- health_conditions: Any health conditions mentioned about the prospect OR their household members. Attribute clearly (e.g. "prospect: none stated; husband: early-onset Alzheimer's pending diagnosis"). Leave blank only if no conditions were mentioned by anyone on the call.
+- age: The prospect's age as a number. Listen carefully — prospects often state their age directly. Do not leave blank if it was stated.
 - lead_quality_score: A score from 1-10 rating the quality of this lead
-- product_type_discussed: The product or coverage type discussed
-- medications: Any medications mentioned
-- has_dependents: Must be exactly one of: "Yes", "No", or "Not Mentioned"
-- marital_status: Must be exactly one of: "Married", "Single", "Divorced", "Widowed", or "Not Mentioned"
+- product_type_discussed: The product or coverage type discussed by name if possible (e.g. "Nationwide Care Matters hybrid life/LTC; Equitrust Bridge LTC annuity"). Null only if truly no product was named or described.
+- medications: Any medications mentioned by the prospect about themselves
+- has_dependents: Must be exactly one of: "Yes", "No", or "Not Mentioned". Listen for mentions of children, dependents. If the prospect mentions having kids, this is "Yes".
+- marital_status: Must be exactly one of: "Married", "Single", "Divorced", "Widowed", or "Not Mentioned". If the prospect refers to a husband or wife at any point, this is "Married".
 - investable_assets: The prospect's total investable/repositionable assets mapped to EXACTLY one of these eight strings (match character-for-character, including the en-dash):
   "Under $100K"
   "$100K–$250K"
@@ -130,11 +142,16 @@ Fields to extract:
   "Likely not qualifiable"
   "Not discussed / Unknown"
 
-  CRITICAL ANTI-FABRICATION RULE: If health/medical conditions were NOT meaningfully discussed in the call, output "Not discussed / Unknown". NEVER infer a health status from absence, never default to a tier, never guess. Do not select a qualification tier unless you can point to specific health statements in the transcript. When in doubt, always choose "Not discussed / Unknown".
+  CRITICAL ANTI-FABRICATION RULE: Base this ONLY on the prospect's own health. NEVER let a spouse's, parent's, or family member's diagnosis bleed into the prospect's health qualification. A prospect whose husband has Alzheimer's but who has no conditions of their own is NOT "Annuity-only candidate" — they are "Likely qualifiable."
 
   ONLY CLASSIFY BASED ON:
-  - Conditions the PROSPECT (or the household member being insured) actually states about themselves.
-  - Do NOT count: the advisor's general statements about conditions; conditions of OTHER people mentioned (e.g. a parent who had Alzheimer's — that is family history, not the prospect's condition); care-cost or product figures. Family history ≠ the prospect having the condition.
+  - Conditions the PROSPECT states about themselves.
+  - Do NOT count: a spouse's or family member's conditions; the advisor's general statements; family history; care-cost figures.
+
+  IMPORTANT — "Likely qualifiable" vs. "Not discussed / Unknown":
+  - Use "Not discussed / Unknown" ONLY when the prospect's health was genuinely never touched on in the call at all.
+  - If the prospect stated no health conditions about themselves AND was described as healthy (by themselves or the advisor), use "Likely qualifiable" — NOT "Not discussed / Unknown."
+  - If health was discussed but only about a family member, and the prospect gave no negative signals about their own health, use "Likely qualifiable."
 
   BUCKET DEFINITIONS (conditions are illustrative, not exhaustive):
   1. "Likely qualifiable" — No concerning conditions mentioned, OR only minor/well-controlled conditions that don't affect underwriting. E.g.: health was discussed and prospect indicated good health; controlled hypertension or hyperlipidemia alone; hypothyroidism on treatment.
