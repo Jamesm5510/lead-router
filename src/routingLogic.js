@@ -16,6 +16,7 @@
  */
 
 const { readAdvisors, updateAdvisor } = require('./dataAccess');
+const { sendAlert }                   = require('./alert');
 
 /**
  * Score an advisor for selection. Lower score = higher priority.
@@ -100,6 +101,16 @@ async function routeLead(lead) {
 
     if (!defaultAdvisor) {
       // Safety net: misconfiguration, no default set
+      const reason = 'No eligible advisors found and no default advisor is configured.';
+      sendAlert(
+        '🚨 Lead Router: No advisor assigned — no default configured',
+        `A lead could not be routed and no default advisor is set.\n\n` +
+        `Lead: ${lead.name || 'unknown'} (${lead.email || 'no email'})\n` +
+        `State: ${state}\n` +
+        `Inactive advisors filtered: ${filteredInactive.join(', ') || 'none'}\n` +
+        `At-capacity advisors filtered: ${filteredAtCapacity.join(', ') || 'none'}\n\n` +
+        `Action required: set isDefault = true on one advisor in Airtable.`
+      );
       return {
         assignedAdvisor: null,
         calendarUrl: null,
@@ -107,7 +118,7 @@ async function routeLead(lead) {
           eligibleAdvisors,
           filteredInactive,
           filteredAtCapacity,
-          finalReason: 'No eligible advisors found and no default advisor is configured.',
+          finalReason: reason,
         },
       };
     }
@@ -116,6 +127,17 @@ async function routeLead(lead) {
     finalReason =
       `No advisors were under capacity for ${state}. ` +
       `Falling back to default advisor ${defaultAdvisor.name}.`;
+
+    sendAlert(
+      `⚠️ Lead Router: Fallback to default advisor for ${state}`,
+      `A lead was routed to the default advisor because no eligible advisor was available.\n\n` +
+      `Lead: ${lead.name || 'unknown'} (${lead.email || 'no email'})\n` +
+      `State: ${state}\n` +
+      `Default advisor used: ${defaultAdvisor.name}\n` +
+      `Inactive advisors filtered: ${filteredInactive.join(', ') || 'none'}\n` +
+      `At-capacity advisors filtered: ${filteredAtCapacity.join(', ') || 'none'}\n\n` +
+      `Check advisor capacity and licensing in Airtable.`
+    );
   }
 
   // ── Increment count immediately so the next lead sees updated capacity ────
