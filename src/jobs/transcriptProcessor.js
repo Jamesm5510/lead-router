@@ -30,6 +30,14 @@ async function extractFields(transcriptText) {
         role: 'user',
         content: `You are analyzing a long-term care insurance sales call transcript. Extract the following fields as a JSON object. If a field cannot be determined, use null.
 
+CRITICAL — MOST CALLS ARE HEALTHY COUPLES PLANNING AHEAD:
+The most common call is a healthy married couple in their 60s or 70s who watched a webinar and want to learn about LTC options. They have no sick household members. They are planning ahead.
+- Do NOT invent or infer a sick spouse, sick parent, or any sick household member. Only mention one if someone on the call explicitly stated it.
+- If you cannot point to an exact line where a health condition for a household member was stated, do not include it.
+- A prospect who mentions a parent died of a disease years ago is NOT a "sick household member" — that is past family history, not a current household health situation.
+- This affects: what_triggered_interest, primary_concern, ai_call_summary, health_conditions. Do not populate these with sick-relative narratives unless the transcript explicitly contains them.
+- IMPORTANT: This rule prevents HALLUCINATION. It does NOT suppress extraction. If health conditions ARE explicitly stated by the prospect or household member, extract them fully. "Do not invent" ≠ "do not extract."
+
 CRITICAL — PROSPECT vs. HOUSEHOLD MEMBER:
 The prospect is the person on the call who is potentially buying coverage for themselves. A spouse, parent, or other family member may also be discussed — they are NOT the prospect. Keep this distinction rigidly throughout:
 - age, marital_status, has_dependents, health_qualification → about the PROSPECT only
@@ -38,12 +46,28 @@ The prospect is the person on the call who is potentially buying coverage for th
 
 CRITICAL — NO CROSS-TRANSCRIPT CONTAMINATION:
 Every field you output must be grounded in THIS transcript only. Do not use any specific product name, dollar figure, diagnosis, or detail that you have seen in prior examples or instructions unless it was actually spoken in this transcript. If a product name, condition, or dollar amount appears in your output, you must be able to point to the exact line in the transcript where it was said. When in doubt, output null — do not fill gaps with plausible-sounding details.
+IMPORTANT: This rule prevents IMPORTING details from other transcripts or from your training data. It does NOT mean ignore clearly stated facts. If the prospect says "I have $115,000 in savings" — extract $115,000. If they say "I take Metformin" — extract Metformin. Clearly stated facts are always extracted. This rule only prevents you from adding facts that were NOT stated.
 
-COMPLETENESS RULE:
-For next_step_agreed_on, product_type_discussed, what_triggered_interest, main_objection, and lead_quality_reason — make a genuine attempt to extract these from the transcript. Only return null if there is truly nothing in the transcript. If a product was mentioned or shown by name, capture it. If next steps were discussed loosely, capture them. Leaving these blank when the transcript has the answer is an error.
+COMPLETENESS RULE — FACTUAL FIELDS (mandatory):
+The following fields MUST be extracted if the information appears anywhere in the transcript. Returning null for these when the answer is present is an extraction error:
+- age — if the prospect states their age at any point, extract it. It is almost always stated.
+- marital_status — if the prospect mentions a husband or wife (living or deceased), extract the status.
+- has_dependents — if the prospect mentions children or grandchildren, extract "Yes".
+- health_conditions — if any conditions are mentioned by name, extract them all.
+- medications — if any medications are mentioned by name, extract them all.
+- income_sources — if any income sources are mentioned (pension, Social Security, etc.), extract them.
+- investable_assets — if the prospect states a dollar amount for any qualifying asset (savings, IRA, 401K, CD, brokerage), extract it and sum across accounts. DO NOT leave this "Not Mentioned/Unclear" when the prospect explicitly gave a dollar figure.
+- product_type_discussed — if the advisor or prospect mentions any product by name or category, extract it.
+- next_step_agreed_on — if any next steps were agreed to (follow-up call, email, brochures), capture them.
+- lead_quality_score — always provide a 1–10 score based on what you know. Do not leave blank.
+
+For what_triggered_interest, main_objection, and lead_quality_reason — make a genuine attempt to extract from the transcript. Only return null if there is truly nothing present.
 
 ANTI-GENERIC-LANGUAGE RULE:
-Do NOT use vague sanitized phrases like "financial preparation for future health challenges", "interested in long-term care options", or "family history of health concerns" unless the prospect literally said those words. The narrative fields (ai_call_summary, primary_concern, what_triggered_interest) must reflect the specific emotional reality of this call. If the trigger was a spouse's imminent diagnosis, say that. If the prospect is a former nurse who has worked with dementia patients, say that. Quote the actual situation — do not smooth it into marketing prose.
+Do NOT use vague sanitized phrases like "financial preparation for future health challenges", "interested in long-term care options", or "family history of health concerns" unless the prospect literally said those words. The narrative fields (ai_call_summary, primary_concern, what_triggered_interest) must reflect the specific emotional reality of this call. If the prospect is a former nurse who has worked with care patients, say that. If they just retired and are doing estate planning, say that. Quote the actual situation — do not smooth it into marketing prose.
+
+VERBATIM SOURCE RULE:
+For ai_call_summary, primary_concern, and what_triggered_interest: before writing each field, ask yourself "which specific line from the transcript am I basing this on?" If you cannot identify a specific line, the field must be null — do not fill it with a plausible-sounding narrative. A confident-sounding answer that isn't grounded in the transcript is worse than null.
 
 Fields to extract:
 - prospect_name: The full name of the prospect/client on the call
@@ -57,12 +81,13 @@ Fields to extract:
 - approximate_monthly_income: Estimated monthly income as a string (e.g. "$4,000/month")
 - income_sources: List of income sources mentioned (e.g. "Social Security, pension")
 - health_conditions: Any health conditions mentioned about the prospect OR their household members. Attribute clearly (e.g. "prospect: [condition]; spouse: [condition]"). Leave blank only if no conditions were mentioned by anyone on the call.
-- age: The prospect's age as a number. Listen carefully — prospects often state their age directly. Do not leave blank if it was stated.
+- age: The prospect's age as a number. MANDATORY EXTRACTION — prospects almost always state their age directly in LTC calls. Scan the ENTIRE transcript before concluding age was not mentioned. If the prospect says "I'm 67", "I just turned 72", "I'm 68 years old", "I'm 74", output that number (67, 72, 68, 74). Also accept if the advisor states the prospect's age and the prospect does not correct them. Only output null if there is truly zero age reference anywhere in the transcript. Returning null when age was stated is an extraction error.
 - lead_quality_score: A score from 1-10 rating the quality of this lead
 - product_type_discussed: The product or coverage type discussed. Use the exact product name if one was stated in the transcript. If only a product category was discussed (e.g. "hybrid life/LTC", "LTC annuity", "asset-based policy") without a specific name, describe the category. Null only if truly no product or coverage type was named or described.
 - medications: Any medications mentioned by the prospect about themselves
 - has_dependents: Must be exactly one of: "Yes", "No", or "Not Mentioned". Listen for mentions of children, dependents. If the prospect mentions having kids, this is "Yes".
-- marital_status: Must be exactly one of: "Married", "Single", "Divorced", "Widowed", or "Not Mentioned". If the prospect refers to a husband or wife at any point, this is "Married".
+- marital_status: Must be exactly one of: "Married", "Single", "Divorced", "Widowed", or "Not Mentioned".
+  CRITICAL — WIDOWED vs MARRIED: If the prospect's spouse has passed away (they say "my husband passed away", "my late husband", "I'm a widow", "I lost my wife", "I'm by myself now" after referencing a spouse, etc.), marital_status = "Widowed" — NOT "Married". The prospect mentioning a deceased husband/wife is NOT evidence of current marriage. Only use "Married" if the spouse is currently alive and they are still together.
 - investable_assets: The prospect's total investable/repositionable assets mapped to EXACTLY one of these eight strings (match character-for-character, including the en-dash):
   "Under $100K"
   "$100K–$250K"
@@ -74,7 +99,7 @@ Fields to extract:
   "Not Mentioned/Unclear"
 
   RULES for investable_assets (follow strictly):
-  1. ANTI-FABRICATION: If the prospect's investable assets are not explicitly stated, output "Not Mentioned/Unclear". Never estimate, infer, or default to any number — especially not $750K. When uncertain, ALWAYS choose "Not Mentioned/Unclear".
+  1. TWO-WAY RULE: (a) If the prospect explicitly states a dollar amount for a qualifying asset, you MUST extract it — do not leave as "Not Mentioned/Unclear" when the prospect gave you a number. (b) If no dollar amount was stated, output "Not Mentioned/Unclear" — do not estimate or infer. The rule is: extract what was stated, don't invent what wasn't.
   2. DEFINITION — count ONLY liquid or repositionable assets: IRA/401k/qualified retirement accounts, brokerage/investment accounts, stocks, mutual funds, CDs, existing annuities (exchangeable), cash/savings/bank balances, and other liquid investments.
   3. EXPLICITLY EXCLUDE — never count these (if only these are present, output "Not Mentioned/Unclear"):
      - Home equity or primary residence value
@@ -211,6 +236,11 @@ Respond with only valid JSON, no explanation.`,
 
   const choice  = data.choices?.[0];
   const content = choice?.message?.content;
+  const refusal = choice?.message?.refusal;
+
+  if (refusal) {
+    throw new Error(`OpenAI content policy refusal: "${refusal}". The transcript may contain language that triggered moderation. Try removing or paraphrasing sensitive passages and re-running.`);
+  }
 
   if (!content) {
     const reason = choice?.finish_reason ?? 'unknown';
@@ -234,17 +264,30 @@ function computeLeadScore(fields) {
   const health = fields.health_qualification;
   const intent = fields.lead_intent;
 
-  const assetsGte250k = ['$250K–$500K', '$500K–$750K', '$750K–$1M', '$1M–$2M', '$2M+'].includes(assets);
-  const assetsLt250k  = ['Under $100K', '$100K–$250K'].includes(assets);
-  const incomeGt5k    = ['$5,000–$7,500/month', '$7,500–$10,000/month', '$10,000+/month'].includes(income);
-  const okayHealth    = ['Likely qualifiable', 'Qualifiable with limitations'].includes(health);
-  const badHealth     = ['Annuity-only candidate', 'Likely not qualifiable'].includes(health);
+  const assetsGte250k  = ['$250K–$500K', '$500K–$750K', '$750K–$1M', '$1M–$2M', '$2M+'].includes(assets);
+  const assetsLt250k   = ['Under $100K', '$100K–$250K'].includes(assets);
+  const assetsUnknown  = assets === 'Not Mentioned/Unclear';
+  const incomeGt5k     = ['$5,000–$7,500/month', '$7,500–$10,000/month', '$10,000+/month'].includes(income);
+  const okayHealth     = ['Likely qualifiable', 'Qualifiable with limitations'].includes(health);
+  const badHealth      = ['Annuity-only candidate', 'Likely not qualifiable'].includes(health);
 
-  if (!age || assets === 'Not Mentioned/Unclear' || health === 'Not discussed / Unknown') return 'Unclear';
+  // Can't score without age or health data
+  if (!age || health === 'Not discussed / Unknown') return 'Unclear';
+
   if (age < 35 || age > 80) return 'D';
   if (age >= 80 && assetsLt250k) return 'D';
+  // 80+ with unknown assets: can't assume they qualify — can't score
+  if (age >= 80 && assetsUnknown) return 'Unclear';
 
   const passesFinancial = assetsGte250k || (incomeGt5k && okayHealth && age < 80);
+
+  // Assets unknown but other signals present — score with caveat rather than Unclear
+  if (assetsUnknown && !passesFinancial) {
+    if (okayHealth && intent === 'High') return 'B';   // Strong signals, assets unconfirmed
+    if (okayHealth) return 'C';                         // Okay health, intent weak/unclear
+    return 'D';                                         // Bad health + no financial data
+  }
+
   if (!passesFinancial) return 'D';
   if (badHealth && assetsLt250k) return 'D';
 
