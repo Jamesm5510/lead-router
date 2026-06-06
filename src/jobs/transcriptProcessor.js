@@ -34,7 +34,10 @@ CRITICAL — PROSPECT vs. HOUSEHOLD MEMBER:
 The prospect is the person on the call who is potentially buying coverage for themselves. A spouse, parent, or other family member may also be discussed — they are NOT the prospect. Keep this distinction rigidly throughout:
 - age, marital_status, has_dependents, health_qualification → about the PROSPECT only
 - If the prospect's spouse or family member is sick but the prospect is healthy, health_qualification is based on the PROSPECT's health, not the family member's
-- health_conditions is the only field that may capture household members — clearly attribute each condition (e.g. "husband: early-onset Alzheimer's (pending diagnosis)")
+- health_conditions is the only field that may capture household members — clearly attribute each condition (e.g. "prospect: [condition]; spouse: [condition]")
+
+CRITICAL — NO CROSS-TRANSCRIPT CONTAMINATION:
+Every field you output must be grounded in THIS transcript only. Do not use any specific product name, dollar figure, diagnosis, or detail that you have seen in prior examples or instructions unless it was actually spoken in this transcript. If a product name, condition, or dollar amount appears in your output, you must be able to point to the exact line in the transcript where it was said. When in doubt, output null — do not fill gaps with plausible-sounding details.
 
 COMPLETENESS RULE:
 For next_step_agreed_on, product_type_discussed, what_triggered_interest, main_objection, and lead_quality_reason — make a genuine attempt to extract these from the transcript. Only return null if there is truly nothing in the transcript. If a product was mentioned or shown by name, capture it. If next steps were discussed loosely, capture them. Leaving these blank when the transcript has the answer is an error.
@@ -53,10 +56,10 @@ Fields to extract:
 - approximate_investible_assets: Estimated investible assets as a string (e.g. "$500,000")
 - approximate_monthly_income: Estimated monthly income as a string (e.g. "$4,000/month")
 - income_sources: List of income sources mentioned (e.g. "Social Security, pension")
-- health_conditions: Any health conditions mentioned about the prospect OR their household members. Attribute clearly (e.g. "prospect: none stated; husband: early-onset Alzheimer's pending diagnosis"). Leave blank only if no conditions were mentioned by anyone on the call.
+- health_conditions: Any health conditions mentioned about the prospect OR their household members. Attribute clearly (e.g. "prospect: [condition]; spouse: [condition]"). Leave blank only if no conditions were mentioned by anyone on the call.
 - age: The prospect's age as a number. Listen carefully — prospects often state their age directly. Do not leave blank if it was stated.
 - lead_quality_score: A score from 1-10 rating the quality of this lead
-- product_type_discussed: The product or coverage type discussed by name if possible (e.g. "Nationwide Care Matters hybrid life/LTC; Equitrust Bridge LTC annuity"). Null only if truly no product was named or described.
+- product_type_discussed: The product or coverage type discussed. Use the exact product name if one was stated in the transcript. If only a product category was discussed (e.g. "hybrid life/LTC", "LTC annuity", "asset-based policy") without a specific name, describe the category. Null only if truly no product or coverage type was named or described.
 - medications: Any medications mentioned by the prospect about themselves
 - has_dependents: Must be exactly one of: "Yes", "No", or "Not Mentioned". Listen for mentions of children, dependents. If the prospect mentions having kids, this is "Yes".
 - marital_status: Must be exactly one of: "Married", "Single", "Divorced", "Widowed", or "Not Mentioned". If the prospect refers to a husband or wife at any point, this is "Married".
@@ -156,7 +159,7 @@ Fields to extract:
   BUCKET DEFINITIONS (conditions are illustrative, not exhaustive):
   1. "Likely qualifiable" — No concerning conditions mentioned, OR only minor/well-controlled conditions that don't affect underwriting. E.g.: health was discussed and prospect indicated good health; controlled hypertension or hyperlipidemia alone; hypothyroidism on treatment.
   2. "Qualifiable with limitations" — Manageable conditions that may affect rate class or product choice but typically do NOT knock the prospect out of underwritten products (traditional LTC / hybrid). E.g.: Type 2 non-insulin diabetes (no complications); mild/stable depression or anxiety on treatment; stable atrial fibrillation without other heart disease; mild stable sleep apnea; mild/moderate osteoarthritis; mild osteoporosis without fracture; well-controlled conditions with elevated-but-acceptable build.
-  3. "Annuity-only candidate" — Conditions that would likely DECLINE for underwritten products (traditional LTC / hybrid) but could still be served by lenient asset-based / annuity products. E.g.: congestive heart failure; insulin-dependent or Type 1 diabetes; defibrillator/pacemaker history; single stroke or TIA history; chronic kidney disease/dialysis; COPD/emphysema or oxygen use; organ transplant; certain cancers in history; osteoporosis with compression fracture; significant cardiac history.
+  3. "Annuity-only candidate" — Conditions that would likely DECLINE for underwritten products (traditional LTC / hybrid) but could still be served by lenient asset-based / annuity products. E.g.: congestive heart failure; insulin-dependent or Type 1 diabetes; defibrillator/pacemaker history; single stroke or TIA history; chronic kidney disease/dialysis; COPD/emphysema or oxygen use; organ transplant; certain cancers in history; osteoporosis with compression fracture; significant cardiac history. Also applies when: the advisor explicitly states the prospect does not qualify for traditional LTC insurance; the prospect is on Social Security Disability Insurance (SSDI) or long-term disability for a qualifying health condition.
   4. "Likely not qualifiable" — Conditions severe enough that even lenient annuity/asset-based products are likely out, OR the person is effectively on-claim. E.g.: Alzheimer's / dementia / significant memory loss; Parkinson's disease; ALS; MS; Huntington's; currently needs help with ADLs (bathing, dressing, eating, toileting, transferring, continence); currently in assisted living / nursing home / receiving home care; currently using wheelchair/walker due to disability; currently taking dementia or Parkinson's medications (Aricept, Namenda, Exelon, Sinemet, carbidopa/levodopa, etc.).
   5. "Not discussed / Unknown" — Health was not meaningfully covered in the call, OR there is insufficient information to place the lead in any tier. This is the DEFAULT whenever in doubt.
 
@@ -178,11 +181,12 @@ Fields to extract:
   - Any other financial context an advisor would find useful
 
   RULES for asset_notes (follow strictly):
-  1. ANTI-FABRICATION: Only include information the prospect (or household) actually stated. Never infer, estimate, or invent figures.
+  1. ANTI-FABRICATION: Only include information the prospect (or household) actually stated. Never infer, estimate, or invent figures. If no dollar amount was stated, do not write one.
   2. EXCLUDE advisor-side figures: do NOT record the advisor's product examples, premium quotes, benefit amounts, benefit multiples, hypotheticals, or care-cost figures as if they were the prospect's assets.
-  3. PROSPECT STATEMENTS, NOT ADVISOR GUESSES: if the advisor guesses the prospect's assets and the prospect doesn't confirm, note it as unconfirmed (e.g. "advisor estimated ~$700-800K, not confirmed by prospect").
-  4. IF NOTHING RELEVANT WAS STATED: output null. Do not write "Not stated" or any placeholder. Null is the correct output when the prospect gave no financial information.
-  5. KEEP IT FACTUAL AND CONCISE: a few sentences or short notes. No interpretation, no sales commentary — just what they have and any relevant context.
+  3. PROSPECT STATEMENTS ONLY: If the advisor guesses or estimates the prospect's assets and the prospect did not confirm a specific number, do NOT include that figure at all — not even as "unconfirmed." Omit it entirely.
+  4. DO NOT MIX INCOME INTO ASSET NOTES: Income sources (Social Security, pension, disability payments) are not assets. Do not include monthly income figures in this field — they belong in monthly_income and income_sources.
+  5. IF NOTHING RELEVANT WAS STATED: output null. Do not write "Not stated" or any placeholder. Null is the correct output when the prospect gave no financial information.
+  6. KEEP IT FACTUAL AND CONCISE: a few sentences or short notes. No interpretation, no sales commentary — just what they have and any relevant context.
 
 Transcript:
 ${transcriptText}
