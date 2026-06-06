@@ -197,10 +197,24 @@ Respond with only valid JSON, no explanation.`,
     }),
   });
 
-  if (!res.ok) throw new Error(`OpenAI request failed: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`OpenAI request failed (${res.status}): ${body}`);
+  }
   const data = await res.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error('OpenAI returned empty response');
+
+  if (data.error) {
+    throw new Error(`OpenAI API error: ${data.error.message} (code: ${data.error.code})`);
+  }
+
+  const choice  = data.choices?.[0];
+  const content = choice?.message?.content;
+
+  if (!content) {
+    const reason = choice?.finish_reason ?? 'unknown';
+    throw new Error(`OpenAI returned empty response (finish_reason: ${reason}). Full response: ${JSON.stringify(data)}`);
+  }
+
   try {
     return JSON.parse(content);
   } catch (e) {
