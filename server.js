@@ -24,6 +24,7 @@ const app      = express();
 const adminAuth                  = require('./src/middleware/adminAuth');
 const { syncMetaAdsToAirtable }  = require('./src/jobs/metaSync');
 const { syncMetaSpendToAirtable } = require('./src/jobs/metaSpendSync');
+const { syncWeeklyMetrics }       = require('./src/jobs/metricsSync');
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -55,13 +56,29 @@ app.post('/admin/sync-meta-ads', adminAuth, async (req, res) => {
 
 // ── Meta spend sync — POST /admin/sync-meta-spend ────────────────────────
 // Run on Tuesday around 2PM to populate Spend fields on current week's rows.
+// Also triggers weekly metrics calculation after spend is written.
 // Requires X-Admin-Key header.
 app.post('/admin/sync-meta-spend', adminAuth, async (req, res) => {
   try {
-    const result = await syncMetaSpendToAirtable();
-    res.json(result);
+    const spendResult   = await syncMetaSpendToAirtable();
+    const metricsResult = await syncWeeklyMetrics();
+    res.json({ spend: spendResult, metrics: metricsResult });
   } catch (err) {
     console.error('[spend-sync] Unhandled error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Weekly metrics sync — POST /admin/sync-metrics ───────────────────────
+// Recalculates and upserts the current cycle's row in Weekly Metrics.
+// Can be run any time to refresh metrics without re-running spend sync.
+// Requires X-Admin-Key header.
+app.post('/admin/sync-metrics', adminAuth, async (req, res) => {
+  try {
+    const result = await syncWeeklyMetrics();
+    res.json(result);
+  } catch (err) {
+    console.error('[metrics-sync] Unhandled error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
