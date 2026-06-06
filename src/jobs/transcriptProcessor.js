@@ -47,7 +47,7 @@ Do NOT use vague sanitized phrases like "financial preparation for future health
 
 Fields to extract:
 - prospect_name: The full name of the prospect/client on the call
-- ai_call_summary: A 2-4 sentence summary of the call. Must capture the specific emotional trigger and situation — not generic interest in LTC. Include what products were discussed and what was agreed as a next step.
+- ai_call_summary: A 2-4 sentence summary of the call. Must capture: (1) the specific emotional trigger or situation driving the call, (2) what products or options were discussed, (3) the ACTUAL OUTCOME — including if the advisor recommended against a purchase, referred to a third party, or concluded the math didn't work. Do not default to "advisor will follow up with more information" if that was not the actual conclusion. If the call ended without a product path forward, say that explicitly.
 - primary_concern: The prospect's specific main concern — not a generic phrase. What is the actual situation driving this call?
 - lead_quality_reason: Why you gave the lead quality score you did. Must reference specific things from the transcript (assets mentioned, health signals, urgency signals, barriers).
 - next_step_agreed_on: What the prospect and advisor explicitly agreed to do next. If the advisor said they would send something, capture it. If the prospect committed to anything, capture it.
@@ -133,8 +133,9 @@ Fields to extract:
 
   CLASSIFICATION RULES:
   - Base the rating ONLY on the prospect's own statements and behavior, not the advisor's enthusiasm or assumptions.
-  - Do NOT confuse friendliness/rapport with buying intent.
+  - Do NOT confuse friendliness/rapport with buying intent. A chatty, engaged, educated prospect who asks good questions is not automatically High or Medium — rate their READINESS TO TRANSACT.
   - Do NOT confuse having a real need with intent to buy.
+  - If the advisor steered the prospect AWAY from a product (e.g. recommended Medicaid planning, said the math doesn't work, referred to a third party), this is a strong signal the lead is NOT High intent regardless of how engaged the prospect was.
   - When signals conflict (interested but very price-resistant), weigh toward the more conservative rating; use "Unclear" if genuinely ambiguous.
   - If intent is not addressed at all → "Unclear", never a level.
 
@@ -145,7 +146,7 @@ Fields to extract:
   "Likely not qualifiable"
   "Not discussed / Unknown"
 
-  CRITICAL ANTI-FABRICATION RULE: Base this ONLY on the prospect's own health. NEVER let a spouse's, parent's, or family member's diagnosis bleed into the prospect's health qualification. A prospect whose husband has Alzheimer's but who has no conditions of their own is NOT "Annuity-only candidate" — they are "Likely qualifiable."
+  CRITICAL ANTI-FABRICATION RULE: Base this ONLY on the prospect's own health. NEVER let a spouse's, parent's, or family member's diagnosis bleed into the prospect's health qualification. If the prospect's family member is sick but the prospect stated no conditions of their own, classify based on the prospect's health alone.
 
   ONLY CLASSIFY BASED ON:
   - Conditions the PROSPECT states about themselves.
@@ -160,7 +161,7 @@ Fields to extract:
   1. "Likely qualifiable" — No concerning conditions mentioned, OR only minor/well-controlled conditions that don't affect underwriting. E.g.: health was discussed and prospect indicated good health; controlled hypertension or hyperlipidemia alone; hypothyroidism on treatment.
   2. "Qualifiable with limitations" — Manageable conditions that may affect rate class or product choice but typically do NOT knock the prospect out of underwritten products (traditional LTC / hybrid). E.g.: Type 2 non-insulin diabetes (no complications); mild/stable depression or anxiety on treatment; stable atrial fibrillation without other heart disease; mild stable sleep apnea; mild/moderate osteoarthritis; mild osteoporosis without fracture; well-controlled conditions with elevated-but-acceptable build.
   3. "Annuity-only candidate" — Conditions that would likely DECLINE for underwritten products (traditional LTC / hybrid) but could still be served by lenient asset-based / annuity products. E.g.: congestive heart failure; insulin-dependent or Type 1 diabetes; defibrillator/pacemaker history; single stroke or TIA history; chronic kidney disease/dialysis; COPD/emphysema or oxygen use; organ transplant; certain cancers in history; osteoporosis with compression fracture; significant cardiac history. Also applies when: the advisor explicitly states the prospect does not qualify for traditional LTC insurance; the prospect is on Social Security Disability Insurance (SSDI) or long-term disability for a qualifying health condition.
-  4. "Likely not qualifiable" — Conditions severe enough that even lenient annuity/asset-based products are likely out, OR the person is effectively on-claim. E.g.: Alzheimer's / dementia / significant memory loss; Parkinson's disease; ALS; MS; Huntington's; currently needs help with ADLs (bathing, dressing, eating, toileting, transferring, continence); currently in assisted living / nursing home / receiving home care; currently using wheelchair/walker due to disability; currently taking dementia or Parkinson's medications (Aricept, Namenda, Exelon, Sinemet, carbidopa/levodopa, etc.).
+  4. "Likely not qualifiable" — Conditions severe enough that even lenient annuity/asset-based products are likely out, OR the person is effectively on-claim. This includes: significant cognitive decline or memory loss; progressive neurological diseases; currently needs help with ADLs (bathing, dressing, eating, toileting, transferring, continence); currently in assisted living / nursing home / receiving home care; currently using wheelchair/walker due to disability; currently taking medications associated with dementia or Parkinson's treatment.
   5. "Not discussed / Unknown" — Health was not meaningfully covered in the call, OR there is insufficient information to place the lead in any tier. This is the DEFAULT whenever in doubt.
 
   CONSERVATISM RULES:
@@ -185,8 +186,9 @@ Fields to extract:
   2. EXCLUDE advisor-side figures: do NOT record the advisor's product examples, premium quotes, benefit amounts, benefit multiples, hypotheticals, or care-cost figures as if they were the prospect's assets.
   3. PROSPECT STATEMENTS ONLY: If the advisor guesses or estimates the prospect's assets and the prospect did not confirm a specific number, do NOT include that figure at all — not even as "unconfirmed." Omit it entirely.
   4. DO NOT MIX INCOME INTO ASSET NOTES: Income sources (Social Security, pension, disability payments) are not assets. Do not include monthly income figures in this field — they belong in monthly_income and income_sources.
-  5. IF NOTHING RELEVANT WAS STATED: output null. Do not write "Not stated" or any placeholder. Null is the correct output when the prospect gave no financial information.
-  6. KEEP IT FACTUAL AND CONCISE: a few sentences or short notes. No interpretation, no sales commentary — just what they have and any relevant context.
+  5. CAPTURE QUALITATIVE STATEMENTS: If the prospect made qualitative statements about their financial situation ("we don't have a lot of money", "I'd have to borrow from the house", "we live frugally") even without giving dollar figures, capture those verbatim — they are useful context for the advisor.
+  6. IF NOTHING RELEVANT WAS STATED: output null. Do not write "Not stated" or any placeholder. Null is the correct output when the prospect gave no financial information whatsoever.
+  7. KEEP IT FACTUAL AND CONCISE: a few sentences or short notes. No interpretation, no sales commentary — just what they have and any relevant context.
 
 Transcript:
 ${transcriptText}
