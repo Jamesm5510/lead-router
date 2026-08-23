@@ -82,9 +82,11 @@ async function routeLead(lead) {
   // ── Step 7: fallback to default advisor ─────────────────────────────────
   let assignedAdvisor;
   let finalReason;
+  let reasonCode;
 
   if (chosen) {
     assignedAdvisor = chosen;
+    reasonCode = 'TOP_RANKED';
     const pct = Math.round(
       (chosen.appointmentsDeliveredThisMonth / chosen.targetAppointmentsPerMonth) * 100
     );
@@ -113,7 +115,9 @@ async function routeLead(lead) {
       );
       return {
         assignedAdvisor: null,
+        assignedAdvisorAirtableId: null,
         calendarUrl: null,
+        reasonCode: 'NO_ADVISOR_AVAILABLE',
         reasoning: {
           eligibleAdvisors,
           filteredInactive,
@@ -124,6 +128,7 @@ async function routeLead(lead) {
     }
 
     assignedAdvisor = defaultAdvisor;
+    reasonCode = 'LEGACY_DEFAULT_FALLBACK';
     finalReason =
       `No advisors were under capacity for ${state}. ` +
       `Falling back to default advisor ${defaultAdvisor.name}.`;
@@ -148,7 +153,9 @@ async function routeLead(lead) {
 
   return {
     assignedAdvisor: assignedAdvisor.name,
+    assignedAdvisorAirtableId: assignedAdvisor.id,
     calendarUrl: assignedAdvisor.calendarUrl,
+    reasonCode,
     reasoning: {
       eligibleAdvisors,
       filteredInactive,
