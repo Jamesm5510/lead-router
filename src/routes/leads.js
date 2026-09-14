@@ -8,8 +8,9 @@
 const express    = require('express');
 const router     = express.Router();
 const { routeLead } = require('../routingLogic');
+const { requireLegacyRouting } = require('../legacyRouting');
 
-router.post('/', async (req, res) => {
+router.post('/', requireLegacyRouting, async (req, res) => {
   const { name, email, phone, state } = req.body;
 
   if (!state) {

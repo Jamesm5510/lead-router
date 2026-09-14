@@ -22,6 +22,7 @@ const cors     = require('cors');
 const path     = require('path');
 const app      = express();
 const adminAuth                  = require('./src/middleware/adminAuth');
+const { legacyRoutingEnabled }   = require('./src/legacyRouting');
 const { syncMetaAdsToAirtable }  = require('./src/jobs/metaSync');
 const { syncMetaSpendToAirtable } = require('./src/jobs/metaSpendSync');
 const { syncWeeklyMetrics }       = require('./src/jobs/metricsSync');
@@ -84,7 +85,11 @@ app.post('/admin/sync-metrics', adminAuth, async (req, res) => {
 });
 
 // ── Health check ──────────────────────────────────────────────────────────
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/health', (req, res) => res.json({
+  status: 'ok',
+  legacyRoutingEnabled: legacyRoutingEnabled(),
+  renderGitCommit: process.env.RENDER_GIT_COMMIT || null,
+}));
 
 // ── Start ─────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
