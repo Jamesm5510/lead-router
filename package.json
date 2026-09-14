@@ -4,6 +4,7 @@
   "description": "Inbound lead routing system — assigns leads to advisors and returns booking links",
   "main": "server.js",
   "scripts": {
+    "test": "node --test test/*.test.js",
     "start": "node server.js",
     "dev": "npx nodemon server.js"
   },

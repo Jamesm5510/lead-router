@@ -14,9 +14,14 @@
 const express   = require('express');
 const router    = express.Router();
 const adminAuth = require('../middleware/adminAuth');
+const { requireLegacyRouting } = require('../legacyRouting');
 const { readAdvisors, getAdvisorById, createAdvisor, updateAdvisor, deleteAdvisor } = require('../dataAccess');
 
 router.use(adminAuth);
+router.use((req, res, next) => {
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
+  return requireLegacyRouting(req, res, next);
+});
 
 // ── GET /advisors ─────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {

@@ -5,6 +5,7 @@
  * Routing logic and routes stay untouched — only this file changed.
  */
 
+const { assertLegacyRoutingEnabled } = require('./legacyRouting');
 const AIRTABLE_TOKEN   = process.env.AIRTABLE_TOKEN;
 const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || 'appHJlW9fAp3BzPfg';
 const TABLE            = 'Advisors';
@@ -80,6 +81,7 @@ async function getAdvisorById(id) {
 
 /** Create a new advisor record in Airtable. */
 async function createAdvisor(data) {
+  assertLegacyRoutingEnabled();
   const fields = {
     'Name':                     data.name,
     'Calendar URL':             data.calendarUrl               || '',
@@ -103,6 +105,7 @@ async function createAdvisor(data) {
 
 /** Merge updates into an advisor record. Returns updated advisor or null. */
 async function updateAdvisor(id, updates) {
+  assertLegacyRoutingEnabled();
   const fields = {};
 
   if (updates.name                           !== undefined) fields['Name']                    = updates.name;
@@ -126,6 +129,7 @@ async function updateAdvisor(id, updates) {
 
 /** Delete an advisor record. Returns true if deleted, false if not found. */
 async function deleteAdvisor(id) {
+  assertLegacyRoutingEnabled();
   const res = await fetch(`${BASE_URL}/${id}`, {
     method:  'DELETE',
     headers: HEADERS,
