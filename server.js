@@ -36,6 +36,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/route-lead',    cors(), require('./src/routes/leads'));
 app.use('/advisors',     require('./src/routes/advisors'));
 app.use('/zoom-webhook', require('./src/routes/zoom'));
+app.use('/fallback-use', require('./src/routes/fallbackMarker').createFallbackMarkerRouter());
 
 // ── Admin UI — clean URL ───────────────────────────────────────────────────
 app.get('/admin', (req, res) => {
