@@ -76,6 +76,7 @@ test('health identifies disabled routing and the adopted Render release', async 
   assert.deepEqual(await app.request('/health', {}, 'GET', false), {
     status: 200, body: { status: 'ok', legacyRoutingEnabled: false, renderGitCommit: 'synthetic-release' },
   });
+  assert.equal((await app.request('/fallback-use', {}, 'POST', false)).status, 404);
   assert.deepEqual(await app.calls(), []);
 });
 
@@ -96,6 +97,7 @@ for (const flag of [undefined, '1']) {
     assert.deepEqual((await app.calls()).map(c => c.method), ['POST', 'PATCH', 'PATCH', 'PATCH', 'GET', 'DELETE']);
     assert.equal((await app.request('/health', {}, 'GET')).body.legacyRoutingEnabled, true);
     assert.equal((await app.request('/route-lead', {})).status, 400);
+    assert.equal((await app.request('/fallback-use', {}, 'POST', false)).status, 404);
     assert.deepEqual(await app.calls(), []);
   });
 }
@@ -137,5 +139,6 @@ test('disabled routing leaves advisor reads, shared jobs, Zoom and static routes
     assert.equal(result.status, 200);
     assert.ok(result.body.length > 0);
   }
+  assert.equal((await app.request('/fallback-use', {}, 'POST', false)).status, 404);
   assert.deepEqual(await app.calls(), []);
 });
