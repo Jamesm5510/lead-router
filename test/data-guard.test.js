@@ -10,11 +10,14 @@ test('direct advisor data helpers refuse disabled writes before calling the prov
     calls.push(args);
     return Response.json({ id: 'synthetic', fields: {} });
   });
-  for (const flag of ['0', '', 'false', 'true', ' 1', '1 ', 'invalid']) {
-    process.env.LEGACY_ROUTING_ENABLED = flag;
+  for (const flag of [undefined, '0', '', 'false', 'true', ' 1', '1 ', 'invalid']) {
+    if (flag === undefined) delete process.env.LEGACY_ROUTING_ENABLED;
+    else process.env.LEGACY_ROUTING_ENABLED = flag;
     for (const action of [() => createAdvisor({ name: 'Synthetic' }), () => updateAdvisor('synthetic', {}), () => deleteAdvisor('synthetic')]) {
       await assert.rejects(action, { code: 'LEGACY_ROUTING_DISABLED' });
     }
   }
-  assert.deepEqual(calls, []);
+  process.env.LEGACY_ROUTING_ENABLED = '1';
+  await createAdvisor({ name: 'Synthetic' });
+  assert.equal(calls.length, 1);
 });

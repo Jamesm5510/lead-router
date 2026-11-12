@@ -7,8 +7,8 @@ provider fetches with synthetic responses. They never call live providers.
 
 ## Legacy routing control
 
-`LEGACY_ROUTING_ENABLED` permits legacy routing only when absent or exactly `1`.
-Set it to `0` to disable routing. Empty, misspelled, or other values also disable it.
+`LEGACY_ROUTING_ENABLED` permits legacy routing only when set to exactly `1`.
+Unset, empty, misspelled, or other values disable routing.
 
 When disabled, new `POST /route-lead` requests return HTTP 503 with
 `code: "LEGACY_ROUTING_DISABLED"` before advisor reads, alerts, or writes.

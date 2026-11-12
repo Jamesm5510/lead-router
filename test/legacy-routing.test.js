@@ -80,7 +80,7 @@ test('health identifies disabled routing and the adopted Render release', async 
   assert.deepEqual(await app.calls(), []);
 });
 
-for (const flag of [undefined, '1']) {
+for (const flag of ['1']) {
   test(`routing and advisor mutations preserve active behavior with flag ${String(flag)}`, async t => {
     const app = await start(t, flag);
     const result = await app.request('/route-lead', { state: 'Oregon' });
@@ -102,8 +102,8 @@ for (const flag of [undefined, '1']) {
   });
 }
 
-for (const flag of ['', 'false', 'true', ' 1', '1 ', 'invalid']) {
-  test(`invalid routing flag ${JSON.stringify(flag)} refuses new work`, async t => {
+for (const flag of [undefined, '0', '', 'false', 'true', ' 1', '1 ', 'invalid']) {
+  test(`disabled routing flag ${JSON.stringify(flag)} refuses new work`, async t => {
     const app = await start(t, flag);
     // Even missing state or advisor fields must not reach validation or provider calls.
     for (const [route, , method] of [['/route-lead'], ...mutations]) {

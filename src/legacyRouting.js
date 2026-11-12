@@ -1,7 +1,6 @@
-// Only an absent flag or the exact value "1" permits legacy routing effects.
+// Only the exact value "1" permits legacy routing effects.
 function legacyRoutingEnabled() {
-  const value = process.env.LEGACY_ROUTING_ENABLED;
-  return value === undefined || value === '1';
+  return process.env.LEGACY_ROUTING_ENABLED === '1';
 }
 
 function requireLegacyRouting(req, res, next) {
