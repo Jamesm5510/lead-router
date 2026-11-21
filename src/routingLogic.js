@@ -103,13 +103,11 @@ async function routeLead(lead) {
       // Safety net: misconfiguration, no default set
       const reason = 'No eligible advisors found and no default advisor is configured.';
       sendAlert(
-        '🚨 Lead Router: No advisor assigned — no default configured',
-        `A lead could not be routed and no default advisor is set.\n\n` +
-        `Lead: ${lead.name || 'unknown'} (${lead.email || 'no email'})\n` +
-        `State: ${state}\n` +
-        `Inactive advisors filtered: ${filteredInactive.join(', ') || 'none'}\n` +
-        `At-capacity advisors filtered: ${filteredAtCapacity.join(', ') || 'none'}\n\n` +
-        `Action required: set isDefault = true on one advisor in Airtable.`
+        `${state} lead can't book, no advisor available`,
+        `${lead.name || 'unknown'} (${lead.email || 'no email'}) tried to book and didn't get a calendar. ` +
+        `Reach out today, then add an active advisor for ${state} or set a default advisor in Airtable.\n\n` +
+        `Skipped as inactive: ${filteredInactive.join(', ') || 'none'}.\n` +
+        `Skipped as full: ${filteredAtCapacity.join(', ') || 'none'}.`
       );
       return {
         assignedAdvisor: null,
@@ -129,14 +127,11 @@ async function routeLead(lead) {
       `Falling back to default advisor ${defaultAdvisor.name}.`;
 
     sendAlert(
-      `⚠️ Lead Router: Fallback to default advisor for ${state}`,
-      `A lead was routed to the default advisor because no eligible advisor was available.\n\n` +
-      `Lead: ${lead.name || 'unknown'} (${lead.email || 'no email'})\n` +
-      `State: ${state}\n` +
-      `Default advisor used: ${defaultAdvisor.name}\n` +
-      `Inactive advisors filtered: ${filteredInactive.join(', ') || 'none'}\n` +
-      `At-capacity advisors filtered: ${filteredAtCapacity.join(', ') || 'none'}\n\n` +
-      `Check advisor capacity and licensing in Airtable.`
+      `${state} lead sent to the default advisor`,
+      `${lead.name || 'unknown'} (${lead.email || 'no email'}) got ${defaultAdvisor.name}'s calendar because no ${state} advisor was available. ` +
+      `Check ${state} capacity and licensing in Airtable.\n\n` +
+      `Skipped as inactive: ${filteredInactive.join(', ') || 'none'}.\n` +
+      `Skipped as full: ${filteredAtCapacity.join(', ') || 'none'}.`
     );
   }
 
