@@ -106,8 +106,8 @@ async function routeLead(lead) {
         `${state} lead can't book, no advisor available`,
         `${lead.name || 'unknown'} (${lead.email || 'no email'}) tried to book and didn't get a calendar. ` +
         `Reach out today, then add an active advisor for ${state} in Airtable.\n\n` +
-        `Details: Skipped inactive advisors: ${filteredInactive.join(', ') || 'none'}; ` +
-        `at-capacity advisors: ${filteredAtCapacity.join(', ') || 'none'}.`
+        `Skipped as inactive: ${filteredInactive.join(', ') || 'none'}.\n` +
+        `Skipped as full: ${filteredAtCapacity.join(', ') || 'none'}.`
       );
       return {
         assignedAdvisor: null,
@@ -127,11 +127,11 @@ async function routeLead(lead) {
       `Falling back to default advisor ${defaultAdvisor.name}.`;
 
     sendAlert(
-      `${state} lead booked with default advisor`,
-      `${lead.name || 'unknown'} (${lead.email || 'no email'}) was booked with ${defaultAdvisor.name}, the default advisor. ` +
+      `${state} lead sent to the default advisor`,
+      `${lead.name || 'unknown'} (${lead.email || 'no email'}) got ${defaultAdvisor.name}'s calendar because no ${state} advisor had room. ` +
       `Check ${state} capacity and licensing in Airtable.\n\n` +
-      `Details: Skipped inactive advisors: ${filteredInactive.join(', ') || 'none'}; ` +
-      `at-capacity advisors: ${filteredAtCapacity.join(', ') || 'none'}.`
+      `Skipped as inactive: ${filteredInactive.join(', ') || 'none'}.\n` +
+      `Skipped as full: ${filteredAtCapacity.join(', ') || 'none'}.`
     );
   }
 
