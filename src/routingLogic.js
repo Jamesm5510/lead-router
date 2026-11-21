@@ -105,7 +105,7 @@ async function routeLead(lead) {
       sendAlert(
         `${state} lead can't book, no advisor available`,
         `${lead.name || 'unknown'} (${lead.email || 'no email'}) tried to book and didn't get a calendar. ` +
-        `Reach out today, then add an active advisor for ${state} in Airtable.\n\n` +
+        `Reach out today, then add an active advisor for ${state} or set a default advisor in Airtable.\n\n` +
         `Skipped as inactive: ${filteredInactive.join(', ') || 'none'}.\n` +
         `Skipped as full: ${filteredAtCapacity.join(', ') || 'none'}.`
       );
@@ -128,7 +128,7 @@ async function routeLead(lead) {
 
     sendAlert(
       `${state} lead sent to the default advisor`,
-      `${lead.name || 'unknown'} (${lead.email || 'no email'}) got ${defaultAdvisor.name}'s calendar because no ${state} advisor had room. ` +
+      `${lead.name || 'unknown'} (${lead.email || 'no email'}) got ${defaultAdvisor.name}'s calendar because no ${state} advisor was available. ` +
       `Check ${state} capacity and licensing in Airtable.\n\n` +
       `Skipped as inactive: ${filteredInactive.join(', ') || 'none'}.\n` +
       `Skipped as full: ${filteredAtCapacity.join(', ') || 'none'}.`

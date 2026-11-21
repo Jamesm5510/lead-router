@@ -53,7 +53,7 @@ test('owner alert explains when a lead cannot book without a default advisor', a
   assert.equal(result.calendarUrl, null);
   assert.deepEqual(alerts, [{
     subject: "Oregon lead can't book, no advisor available",
-    body: "Taylor Example (taylor@example.com) tried to book and didn't get a calendar. Reach out today, then add an active advisor for Oregon in Airtable.\n\nSkipped as inactive: Inactive advisor.\nSkipped as full: Full advisor.",
+    body: "Taylor Example (taylor@example.com) tried to book and didn't get a calendar. Reach out today, then add an active advisor for Oregon or set a default advisor in Airtable.\n\nSkipped as inactive: Inactive advisor.\nSkipped as full: Full advisor.",
   }]);
 });
 
@@ -82,6 +82,6 @@ test('owner alert explains when a lead was booked with the default advisor', asy
   assert.equal(result.calendarUrl, 'https://calendar.example/default');
   assert.deepEqual(alerts, [{
     subject: 'Oregon lead sent to the default advisor',
-    body: "Taylor Example (taylor@example.com) got Default advisor's calendar because no Oregon advisor had room. Check Oregon capacity and licensing in Airtable.\n\nSkipped as inactive: Inactive advisor.\nSkipped as full: Full advisor.",
+    body: "Taylor Example (taylor@example.com) got Default advisor's calendar because no Oregon advisor was available. Check Oregon capacity and licensing in Airtable.\n\nSkipped as inactive: Inactive advisor.\nSkipped as full: Full advisor.",
   }]);
 });
